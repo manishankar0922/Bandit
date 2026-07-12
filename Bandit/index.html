@@ -21,6 +21,7 @@
     <div class="bubble" id="bubble"></div>
     <div class="pet-menu" id="petMenu">
       <button id="menuEnhance">✨ Enhance</button>
+      <button id="menuUndo">↩️ Undo</button>
       <button id="menuFeed">🍪 Feed</button>
       <button id="menuSummarize">📋 Summarize</button>
       <button id="menuSettings">⚙️ Settings</button>
@@ -56,6 +57,20 @@
     </label>
 
     <hr class="modal-divider">
+
+    <label style="flex-direction:row;align-items:center;gap:8px;cursor:pointer">
+      <input type="checkbox" id="settingAskPlaceholders" checked style="accent-color:#f5a524">
+      Ask me to fill in [placeholders] after Enhance
+    </label>
+
+    <label>
+      Enhance Style
+      <select id="settingStyle">
+        <option value="structured">Structured (GOAL / CONTEXT / REQUIREMENTS)</option>
+        <option value="concise">Concise (one tight paragraph)</option>
+        <option value="detailed">Detailed (full spec + edge cases)</option>
+      </select>
+    </label>
 
     <label>
       AI Provider

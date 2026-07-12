@@ -17,9 +17,12 @@
     provider: 'builtin', // 'builtin' | 'anthropic' | 'openai' | 'gemini' | 'groq' | 'nvidia'
     apiKey: '',
     model: '', // optional override; empty = provider's default model
+    enhanceStyle: 'structured', // 'structured' | 'concise' | 'detailed'
+    askPlaceholders: true, // after enhance, ask the user to fill [placeholders]
   };
 
   const KNOWN_PROVIDERS = ['builtin', 'anthropic', 'openai', 'gemini', 'groq', 'nvidia'];
+  const KNOWN_STYLES = ['structured', 'concise', 'detailed'];
 
   const storageApiPresent = !!(api && api.storage && api.storage.local);
 
@@ -56,6 +59,8 @@
         : (migratedProvider || DEFAULTS.provider),
       apiKey: typeof s.apiKey === 'string' ? s.apiKey : (migratedApiKey || DEFAULTS.apiKey),
       model: typeof s.model === 'string' ? s.model : (legacyAI && typeof legacyAI.model === 'string' ? legacyAI.model : DEFAULTS.model),
+      enhanceStyle: KNOWN_STYLES.includes(s.enhanceStyle) ? s.enhanceStyle : DEFAULTS.enhanceStyle,
+      askPlaceholders: typeof s.askPlaceholders === 'boolean' ? s.askPlaceholders : DEFAULTS.askPlaceholders,
     };
   }
 

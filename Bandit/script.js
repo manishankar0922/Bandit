@@ -65,7 +65,7 @@ function friendlyError(err) {
   if (/messaging unavailable/i.test(msg)) return "this only works in the real extension, not the demo page";
   if (/timed out/i.test(msg)) return 'took too long, try again';
   if (/network|fetch|Failed to fetch/i.test(msg)) return 'network hiccup, try again';
-  return msg.length > 80 ? 'something went wrong' : msg;
+  return msg.length > 160 ? msg.slice(0, 160) + '…' : msg;
 }
 
 function copyToClipboard(text) {
@@ -227,6 +227,10 @@ const F_EYES_OPEN  =[[4,11,2,2,'E'],[20,11,2,2,'E']];
 const F_EYES_CLOSED=[[3,12,4,1,'K'],[19,12,4,1,'K']];
 const F_EYES_HAPPY =[[4,11,2,1,'E'],[20,11,2,1,'E'], [2,13,2,1,'#ff7b7b'],[22,13,2,1,'#ff7b7b']];
 const F_SHADES     =[[2,10,8,3,'K'],[18,10,8,3,'K'],[10,11,8,1,'K'],[4,11,2,1,'#69d2ff'],[20,11,2,1,'#69d2ff']];
+// Level 3: cozy red scarf around the neck, one dangling end.
+const F_SCARF      =[[3,19,20,2,'#d64545'],[4,21,3,1,'#b23737'],[4,22,2,2,'#d64545']];
+// Level 4: little gold crown perched between the ears.
+const F_CROWN      =[[10,3,1,3,'#f5c542'],[13,2,1,4,'#f5c542'],[16,3,1,3,'#f5c542'],[9,5,9,1,'#e0a92e'],[13,1,1,1,'#fff1b8']];
 
 const frontSvg=doc.getElementById('frontSvg');
 const fTailG=group('tail',frontSvg);
@@ -245,7 +249,14 @@ function overlay(g,s){g.innerHTML='';s.forEach(([x,y,w,h,c])=>rect(x,y,w,h,C[c]|
 function eyesOpen(){overlay(fEyesG,F_EYES_OPEN);}
 function eyesClosed(){overlay(fEyesG,F_EYES_CLOSED);}
 function eyesHappy(){overlay(fEyesG,F_EYES_HAPPY);}
-function putShades(on){overlay(fAccG,on?F_SHADES:[]);}
+// Accessories stack up as Rocky levels: 2=shades, 3=+scarf, 4=+crown.
+function applyAccessories(lvl){
+  overlay(fAccG, [
+    ...(lvl>=2?F_SHADES:[]),
+    ...(lvl>=3?F_SCARF:[]),
+    ...(lvl>=4?F_CROWN:[]),
+  ]);
+}
 eyesOpen();
 
 /* =========================================================
@@ -268,8 +279,11 @@ let xp=hydrated.xp, level=hydrated.level;
 let petName=hydrated.petName;
 let lastFedAt=hydrated.lastFedAt||0;
 let aiSettings={ provider: hydrated.provider||'builtin', apiKey: hydrated.apiKey||'', model: hydrated.model||'' };
+let enhanceStyle=hydrated.enhanceStyle||'structured';
+let askPlaceholders=hydrated.askPlaceholders!==false;
+let lastEnhance=null; // { input, original } — lets the Undo menu restore pre-enhance text
 const FEED_COOLDOWN_MS=60000;
-const LEVELS=[0,20,50,100];
+const LEVELS=[0,20,50,100,200]; // level 1..4 thresholds; 200 caps out at LVL 4
 let lastActivity=Date.now();
 let alertShown=false;
 let runAnim=null;
@@ -294,6 +308,21 @@ function showToast(msg){
   toast.textContent=msg;toast.classList.add('show');
   clearTimeout(showToast._t);
   showToast._t=setTimeout(()=>toast.classList.remove('show'),2200);
+}
+
+// Animated "thinking…" bubble — cycling dots make waiting on the AI feel
+// alive instead of frozen. Always pair sayThinking() with stopThinking().
+let thinkingTimer=null;
+function sayThinking(base){
+  clearInterval(thinkingTimer);
+  let n=0;
+  const step=()=>{ n=(n%3)+1; say(base+'.'.repeat(n),0); };
+  step();
+  thinkingTimer=setInterval(step,450);
+}
+function stopThinking(){
+  clearInterval(thinkingTimer);
+  thinkingTimer=null;
 }
 
 /* blinking (front sprite) */
@@ -380,7 +409,16 @@ function stopRun(){
 }
 
 /* idle chatter */
-const idleLines=['psst… got a trash prompt for me? 🗑️','feed me prompts. trash → treasure ✨','zoomies incoming 🐾'];
+const idleLines=[
+  'psst… got a trash prompt for me? 🗑️',
+  'feed me prompts. trash → treasure ✨',
+  'zoomies incoming 🐾',
+  'double-click me to enhance ✨',
+  'right-click me for snacks 🍪',
+  'I summarize chats too, y\'know 📋',
+  '*sniffs around for bugs* 🐛',
+  'ship it. ship it now 🚀',
+];
 setInterval(()=>{
   if(state==='idle'&&Date.now()-lastActivity>6000&&Date.now()-lastActivity<18000){
     say(idleLines[Math.floor(Math.random()*idleLines.length)],2400);
@@ -405,9 +443,26 @@ if(input) input.addEventListener('input',()=>{
 function getHostInput() {
   const active = document.activeElement;
   if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT' || active.isContentEditable)) {
-    return active;
+    const r = active.getBoundingClientRect();
+    // A focused-but-invisible element is worse than falling through to search.
+    if (r.width > 0 && r.height > 0) return active;
   }
-  return document.querySelector('textarea, div[contenteditable="true"], [contenteditable="plaintext-only"]');
+
+  // Fall back to the largest VISIBLE candidate on the page. Many AI tool UIs
+  // have several textarea/contenteditable elements (hidden fields, decoys,
+  // secondary boxes) — the biggest one on screen is almost always the real
+  // prompt composer, regardless of DOM order.
+  const candidates = document.querySelectorAll(
+    'textarea, input[type="text"], input:not([type]), div[contenteditable="true"], [contenteditable="plaintext-only"]'
+  );
+  let best = null, bestArea = 0;
+  for (const el of candidates) {
+    if (el.offsetParent === null) continue; // display:none / detached
+    const r = el.getBoundingClientRect();
+    const area = r.width * r.height;
+    if (area > bestArea) { bestArea = area; best = el; }
+  }
+  return best;
 }
 
 // The ONLY safe way to inject text into complex React/ProseMirror editors is
@@ -425,6 +480,112 @@ function setPromptText(hostInput, text) {
     if (selection) selection.selectAllChildren(hostInput);
     document.execCommand('insertText', false, text);
   }
+}
+
+/* =========================================================
+   PLACEHOLDER Q&A — when the enhanced prompt contains
+   [bracketed placeholders], Rocky asks the user to fill each one
+   (with clickable suggestions) before inserting the final text.
+   ========================================================= */
+const PLACEHOLDER_SUGGESTIONS = [
+  { re: /stack|framework|frontend|tech/i, opts: ['React + Node.js', 'Next.js', 'Vue + Express', 'Plain HTML/CSS/JS'] },
+  { re: /database|\bdb\b|storage/i,       opts: ['PostgreSQL', 'MongoDB', 'SQLite', 'Supabase'] },
+  { re: /backend|server|api/i,            opts: ['Node.js + Express', 'Supabase', 'Firebase', 'Python FastAPI'] },
+  { re: /auth/i,                          opts: ['Email + password', 'Google OAuth', 'Magic link'] },
+  { re: /config/i,                        opts: ['.env file', 'JSON config file'] },
+  { re: /color|brand|theme|design|style/i, opts: ['Minimal light', 'Dark mode', 'Colorful / playful'] },
+];
+function suggestionsFor(ph) {
+  for (const s of PLACEHOLDER_SUGGESTIONS) if (s.re.test(ph)) return s.opts;
+  return [];
+}
+function extractPlaceholders(text) {
+  const found = new Set();
+  const re = /\[([^\[\]\n]{2,48})\]/g;
+  let m;
+  while ((m = re.exec(text))) found.add(m[1]);
+  return [...found];
+}
+
+// Asks one question per placeholder in a mini-modal (reuses settings-modal
+// styling). Skipped/dismissed placeholders stay bracketed in the output.
+function askPlaceholderValues(text, placeholders, done) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay show';
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  overlay.appendChild(modal);
+  docBody.appendChild(overlay);
+
+  let i = 0;
+  let out = text;
+
+  const finish = () => { overlay.remove(); done(out); };
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(); });
+
+  const answer = (val) => {
+    if (val) out = out.split('[' + placeholders[i] + ']').join(val);
+    i++;
+    if (i < placeholders.length) renderQuestion(); else finish();
+  };
+
+  const renderQuestion = () => {
+    const ph = placeholders[i];
+    modal.innerHTML = '';
+
+    const h = document.createElement('h3');
+    h.textContent = `🦝 quick question ${i + 1}/${placeholders.length}`;
+    modal.appendChild(h);
+
+    const q = document.createElement('div');
+    q.style.cssText = 'font-size:12px;line-height:1.6;color:#8a95a5';
+    q.append('What should I use for ');
+    const b = document.createElement('b');
+    b.style.color = '#f5a524';
+    b.textContent = '[' + ph + ']';
+    q.appendChild(b);
+    q.append('?');
+    modal.appendChild(q);
+
+    suggestionsFor(ph).forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'secondary';
+      btn.textContent = opt;
+      btn.addEventListener('click', () => answer(opt));
+      modal.appendChild(btn);
+    });
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'or type your own…';
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation(); // keep keystrokes away from host-page shortcuts
+      if (e.key === 'Enter' && input.value.trim()) answer(input.value.trim());
+      if (e.key === 'Escape') finish();
+    });
+    modal.appendChild(input);
+
+    const row = document.createElement('div');
+    row.className = 'settings-row';
+    const ok = document.createElement('button');
+    ok.type = 'button';
+    ok.textContent = 'Use this';
+    ok.style.flex = '1';
+    ok.addEventListener('click', () => { if (input.value.trim()) answer(input.value.trim()); });
+    const skip = document.createElement('button');
+    skip.type = 'button';
+    skip.className = 'secondary';
+    skip.textContent = 'Skip';
+    skip.addEventListener('click', () => answer(null));
+    row.appendChild(ok);
+    row.appendChild(skip);
+    modal.appendChild(row);
+
+    setTimeout(() => input.focus(), 60);
+  };
+
+  renderQuestion();
 }
 
 function enhancePrompt() {
@@ -451,20 +612,36 @@ function enhancePrompt() {
 
   pokeActivity(); stopRun();
   setState('working');
-  say('rummaging through your prompt… 🔍', 4000);
+  sayThinking('rummaging through your prompt 🔍');
 
-  const ENHANCE_SYSTEM = window.RockyPrompts ? window.RockyPrompts.ENHANCE_SYSTEM : '';
+  const styles = (window.RockyPrompts && window.RockyPrompts.ENHANCE_SYSTEMS) || {};
+  const ENHANCE_SYSTEM = styles[enhanceStyle] || (window.RockyPrompts ? window.RockyPrompts.ENHANCE_SYSTEM : '');
 
   window.rockyAIPipeline(ENHANCE_SYSTEM, val.trim(), {
     actionKey: 'enhance',
-    onProgress: (frac) => say(`downloading on-device AI… ${Math.round(frac*100)}% 📥`, 0),
+    onProgress: (frac) => { stopThinking(); say(`downloading on-device AI… ${Math.round(frac*100)}% 📥`, 0); },
   }).then(result => {
-    setPromptText(hostInput, result.trim());
-    gainXP(10);
-    setState('happy');
-    say('trash → treasure! <span class="xp-pop">+10 XP</span> ✨', 3000);
-    setTimeout(()=>{if(state==='happy')setState('idle');}, 1150);
+    stopThinking();
+    lastEnhance = { input: hostInput, original: val };
+
+    const insertFinal = (text) => {
+      setPromptText(hostInput, text.trim());
+      gainXP(10);
+      setState('happy');
+      say('trash → treasure! <span class="xp-pop">+10 XP</span> ✨<br><span style="opacity:.7">changed your mind? menu → ↩️ Undo</span>', 3600);
+      setTimeout(()=>{if(state==='happy')setState('idle');}, 1150);
+    };
+
+    const placeholders = extractPlaceholders(result);
+    if (askPlaceholders && placeholders.length) {
+      setState('alert');
+      say('almost! fill in a couple of blanks for me ✍️', 3000);
+      askPlaceholderValues(result, placeholders, insertFinal);
+    } else {
+      insertFinal(result);
+    }
   }).catch(err => {
+    stopThinking();
     console.warn('Rocky: enhance failed', err && err.message);
     setState('idle');
     say(`couldn't enhance that — ${friendlyError(err)}<br><b>Set up key in settings 🔧</b>`, 4200);
@@ -485,12 +662,13 @@ function gainXP(n, silent = false){
     level++;
     wrap.classList.add('levelup');
     setTimeout(()=>wrap.classList.remove('levelup'),1500);
-    if(level===2){
-      putShades(true);
-      showToast('🦝 LEVEL 2 — Rocky found sunglasses in the trash');
-    }else{
-      showToast(`🦝 LEVEL ${level}!`);
-    }
+    applyAccessories(level);
+    const LEVEL_TOASTS = {
+      2: '🦝 LEVEL 2 — Rocky found sunglasses in the trash',
+      3: '🧣 LEVEL 3 — Rocky found a cozy scarf!',
+      4: '👑 LEVEL 4 — ALL HAIL THE TRASH KING',
+    };
+    showToast(LEVEL_TOASTS[level] || `🦝 LEVEL ${level}!`);
   }
   updateXPDisplay();
   persist({ xp, level });
@@ -584,11 +762,29 @@ function spawnHeart() {
 }
 window.addEventListener('pointerout', () => petDistance = 0);
 
+// Rocky's pupils drift toward the cursor — tiny effect, big "he's alive" feel.
+// Throttled to ~10Hz; skipped while sleeping (eyes closed) or above level 1
+// (shades cover the eyes anyway).
+let lastEyeMove = 0;
+function eyesFollowCursor(e){
+  const now = Date.now();
+  if (now - lastEyeMove < 100) return;
+  lastEyeMove = now;
+  if (state === 'sleeping' || level >= 2) { fEyesG.removeAttribute('transform'); return; }
+  const r = pet.getBoundingClientRect();
+  if (!r.width) return;
+  const cx = r.left + r.width / 2, cy = r.top + r.height * 0.38; // eye line
+  const dx = Math.max(-1, Math.min(1, (e.clientX - cx) / 160));
+  const dy = Math.max(-1, Math.min(1, (e.clientY - cy) / 160));
+  fEyesG.setAttribute('transform', `translate(${(dx * 0.7).toFixed(2)}, ${(dy * 0.5).toFixed(2)})`);
+}
+
 window.addEventListener('pointermove',e=>{
   if(!drag) {
+    eyesFollowCursor(e);
     if(state === 'sleeping') return;
     if(!getClosest(e, '#pet')) return;
-    
+
     petDistance += Math.hypot(e.movementX, e.movementY);
     if (petDistance > 200) {
       petDistance = 0;
@@ -691,6 +887,25 @@ if(menuEnhance) menuEnhance.addEventListener('click',()=>{
   wrap.classList.remove('show-menu');
   enhancePrompt();
 });
+
+const menuUndo = doc.getElementById('menuUndo');
+if(menuUndo) menuUndo.addEventListener('click',()=>{
+  wrap.classList.remove('show-menu');
+  pokeActivity();
+  if(!lastEnhance || !document.contains(lastEnhance.input)){
+    say('nothing to undo 🤷', 2400);
+    return;
+  }
+  try {
+    setPromptText(lastEnhance.input, lastEnhance.original);
+    lastEnhance = null;
+    say('back to your original ↩️', 2400);
+  } catch (err) {
+    console.warn('Rocky: undo failed', err && err.message);
+    say("couldn't undo that one 😖", 2400);
+  }
+});
+
 function runSummarize(){
   if(state==='working') return;
   pokeActivity(); stopRun();
@@ -708,21 +923,23 @@ function runSummarize(){
   }
 
   setState('working');
-  say('reading through the chat… 🔍', 5000);
+  sayThinking('reading through the chat 🔍');
 
   const SUMMARIZE_SYSTEM = window.RockyPrompts ? window.RockyPrompts.SUMMARIZE_SYSTEM : '';
 
   window.rockyAIPipeline(SUMMARIZE_SYSTEM, transcript, {
     actionKey: 'summarize',
-    onProgress: (frac) => say(`downloading on-device AI… ${Math.round(frac*100)}% 📥`, 0),
+    onProgress: (frac) => { stopThinking(); say(`downloading on-device AI… ${Math.round(frac*100)}% 📥`, 0); },
   }).then(brief => copyToClipboard(brief))
     .then(()=>{
+      stopThinking();
       setState('happy');
       say('context brief copied 📋 — paste it into your next chat', 3400);
       gainXP(15);
       setTimeout(()=>{ if(state==='happy') setState('idle'); }, 2600);
     })
     .catch(err=>{
+      stopThinking();
       console.warn('Rocky: summarize failed', err && err.message);
       setState('idle');
       say(`couldn't get that summary — ${friendlyError(err)}<br><b>Set up key in settings 🔧</b>`, 4200);
@@ -768,12 +985,14 @@ function eatApple(xpAmount) {
   }, 700);
 }
 
+const SNACKS = ['🍪','🍎','🍩','🍕','🌮','🧁'];
 function spawnFeedTreat(){
   stopRun();
   setState('idle');
 
+  const snack = SNACKS[Math.floor(Math.random()*SNACKS.length)];
   const treat = document.createElement('div');
-  treat.innerText = '🍪';
+  treat.innerText = snack;
   treat.style.position = 'absolute';
   treat.style.fontSize = '22px';
   treat.style.zIndex = '100';
@@ -799,7 +1018,7 @@ function spawnFeedTreat(){
     treat.remove();
     eyesOpen();
     setState('happy');
-    say('nom nom nom 🍪 <span class="xp-pop">+5 XP</span>', 2500);
+    say(`nom nom nom ${snack} <span class="xp-pop">+5 XP</span>`, 2500);
     gainXP(5);
     setTimeout(()=>{if(state==='happy')setState('idle')}, 2500);
   }, 700);
@@ -845,6 +1064,8 @@ const sizeValue = doc.getElementById('sizeValue');
 const settingProvider = doc.getElementById('settingProvider');
 const settingApiKey = doc.getElementById('settingApiKey');
 const settingModel = doc.getElementById('settingModel');
+const settingStyle = doc.getElementById('settingStyle');
+const settingAskPlaceholders = doc.getElementById('settingAskPlaceholders');
 const testApiKeyBtn = doc.getElementById('testApiKey');
 const testApiKeyStatus = doc.getElementById('testApiKeyStatus');
 
@@ -854,6 +1075,8 @@ if(menuSettings) menuSettings.addEventListener('click',()=>{
   if(settingProvider) settingProvider.value = aiSettings.provider || 'builtin';
   if(settingApiKey) settingApiKey.value = aiSettings.apiKey || '';
   if(settingModel) settingModel.value = aiSettings.model || '';
+  if(settingStyle) settingStyle.value = enhanceStyle;
+  if(settingAskPlaceholders) settingAskPlaceholders.checked = askPlaceholders;
   if(testApiKeyStatus){ testApiKeyStatus.textContent=''; testApiKeyStatus.className='test-key-status'; }
   settingsModal.classList.add('show');
 });
@@ -875,7 +1098,9 @@ if(closeSettings) closeSettings.addEventListener('click',()=>{
     apiKey: settingApiKey ? settingApiKey.value.trim() : aiSettings.apiKey,
     model: settingModel ? settingModel.value.trim() : aiSettings.model,
   };
-  persist({ petName, provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model });
+  if(settingStyle) enhanceStyle = settingStyle.value || 'structured';
+  if(settingAskPlaceholders) askPlaceholders = settingAskPlaceholders.checked;
+  persist({ petName, provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model, enhanceStyle, askPlaceholders });
 });
 
 settingSize.addEventListener('input', e=>{
@@ -974,7 +1199,6 @@ Let me know if you need any adjustments!`;
 });
 
 window.addEventListener('keydown',pokeActivity);
-setInterval(tick,1000);
 
 window.addEventListener('dblclick', e => {
   if (getClosest(e, '#petWrap') || getClosest(e, '.modal')) return;
@@ -1058,7 +1282,7 @@ if(hydrated.position && typeof hydrated.position.x === 'number' && typeof hydrat
 if(sizeValue) sizeValue.textContent = Math.round(hydratedSize*100) + '%';
 if(settingName) settingName.value = petName;
 
-if(level>=2) putShades(true);
+applyAccessories(level);
 updateXPDisplay();
 
 // If Rocky levels up (or gets renamed) in another tab, mirror it here live —
@@ -1073,8 +1297,8 @@ function applyRemoteState(remote){
   }
   if(typeof remote.xp==='number' && remote.xp!==xp){xp=remote.xp;changed=true;}
   if(typeof remote.level==='number' && remote.level!==level){
-    if(remote.level>=2 && level<2) putShades(true);
     level=remote.level;
+    applyAccessories(level);
     changed=true;
   }
   if(typeof remote.provider==='string' || typeof remote.apiKey==='string' || typeof remote.model==='string'){
@@ -1085,6 +1309,8 @@ function applyRemoteState(remote){
     };
   }
   if(typeof remote.lastFedAt==='number') lastFedAt = remote.lastFedAt;
+  if(typeof remote.enhanceStyle==='string') enhanceStyle = remote.enhanceStyle;
+  if(typeof remote.askPlaceholders==='boolean') askPlaceholders = remote.askPlaceholders;
   if(changed) updateXPDisplay();
 }
 if(window.RockyStorage) window.RockyStorage.onStateChanged(applyRemoteState);
@@ -1109,6 +1335,14 @@ if(!hydrated.onboarded){
     say(`hi, I'm <b>${petName}</b> 🦝<br>you can change my name in Settings!`,4000);
     persist({ onboarded: true });
   },700);
+} else if(Math.random()<0.35){
+  // Returning user: occasional time-of-day hello, kept rare so it never nags.
+  setTimeout(()=>{
+    if(state!=='idle') return;
+    const h=new Date().getHours();
+    const g = h<6 ? 'up late? me too 🌙' : h<12 ? 'morning! ☀️ let\'s build' : h<18 ? 'afternoon grind 🔨' : 'evening vibes 🌆';
+    say(g,2600);
+  },1400);
 }
 setTimeout(()=>{if(state==='idle')startRun();},4200);
 }

@@ -36,7 +36,7 @@ if (!window.rockyInjected) {
   // 3. Fetch index.html with cache busting, and load saved state in parallel.
   //    Rocky stays hidden until both resolve, so he never flashes as level 1
   //    before hydrating to his real saved level.
-  const htmlPromise = fetch(api.runtime.getURL('index.html') + '?t=' + Date.now())
+  const htmlPromise = fetch(api.runtime.getURL('index.html'))
     .then(response => response.text());
 
   const statePromise = (window.RockyStorage ? window.RockyStorage.loadState() : Promise.resolve(null))
@@ -81,17 +81,29 @@ if (!window.rockyInjected) {
       }
       // (Removed settingsModal pointerEvents auto, as CSS handles it via .show)
 
-      // 5. Inject CSS with cache busting
+      // 5. Inject CSS
       const style = document.createElement('link');
       style.rel = 'stylesheet';
-      style.href = api.runtime.getURL('styles.css') + '?t=' + Date.now();
+      style.href = api.runtime.getURL('styles.css');
       shadow.appendChild(style);
 
       // 6. Initialize Rocky logic (reveals itself once hydrated)
       if (typeof initRocky === 'function') {
         initRocky(state);
+      } else {
+        throw new Error('script.js did not define initRocky (it may have failed to load)');
       }
     })
-    .catch(err => console.error("Rocky load error:", err));
+    .catch(err => {
+      console.error("Rocky load error:", err);
+      // Visible fallback so a failure is obvious without opening devtools.
+      try {
+        const banner = document.createElement('div');
+        banner.textContent = 'Rocky failed to load: ' + ((err && err.message) || String(err));
+        banner.style.cssText = 'position:fixed;bottom:8px;right:8px;z-index:2147483647;background:#c0392b;color:#fff;font:12px monospace;padding:8px 12px;border-radius:8px;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,.4);';
+        document.body.appendChild(banner);
+        setTimeout(() => banner.remove(), 20000);
+      } catch (bannerErr) { /* nothing more we can do */ }
+    });
   }
 }
