@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rocky — Final (Classic + Runner)</title>
+  <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="logo"></div>
+    <b>VibeBuild</b><span>— untitled-project-7</span>
+    <span class="demo-tag">FINAL DEMO · classic Rocky + 4-leg running 🐾</span>
+  </div>
+  <div class="stage">
+    <div id="rocky-root">
+  <div class="pet-wrap" id="petWrap">
+    <div class="bubble" id="bubble"></div>
+    <div class="pet-menu" id="petMenu">
+      <button id="menuEnhance">✨ Enhance</button>
+      <button id="menuFeed">🍪 Feed</button>
+      <button id="menuSummarize">📋 Summarize</button>
+      <button id="menuSettings">⚙️ Settings</button>
+    </div>
+    <div class="emote" id="startleEmote" style="display:none;position:absolute;top:-10px;font-size:28px;z-index:10;animation:pop .3s cubic-bezier(.3,1.4,.5,1)">❗️</div>
+    <div class="pet" id="pet">
+      <span class="zzz">z</span><span class="zzz z2">z</span>
+      <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
+      <div class="sprite" id="frontSprite"><svg viewBox="0 0 32 32" id="frontSvg"></svg></div>
+      
+      
+      
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h3>Pet Settings</h3>
+    
+    <div class="xp-bar" style="opacity:1; transform:none; pointer-events:auto; margin:0 0 4px 0; width:100%; max-width:none; background:#0f1318;"><div class="xp-fill" id="xpFill"></div></div>
+    <div class="xp-label" id="xpLabel" style="opacity:1; transform:none; pointer-events:auto; margin-bottom:16px;">ROCKY · <b>LVL 1</b> · 0/20 XP</div>
+
+    <label>
+      Name
+      <input type="text" id="settingName" value="Rocky" autocomplete="off" spellcheck="false">
+    </label>
+    <label>
+      Size (<span id="sizeValue">100%</span>)
+      <input type="range" id="settingSize" min="0.5" max="2" step="0.1" value="1">
+    </label>
+
+    <hr class="modal-divider">
+
+    <label>
+      AI Provider
+      <select id="settingProvider">
+        <option value="anthropic">Anthropic Claude</option>
+        <option value="openai">OpenAI</option>
+        <option value="gemini">Google Gemini</option>
+        <option value="groq">Groq (free tier, fast)</option>
+        <option value="nvidia">NVIDIA NIM (free tier, generous limits)</option>
+        <option value="builtin">Use built-in Chrome AI only (no key)</option>
+      </select>
+    </label>
+    <label>
+      API Key <span class="label-hint">(not needed for built-in AI — pasting one auto-picks a provider above)</span>
+      <input type="password" id="settingApiKey" autocomplete="off" spellcheck="false" placeholder="paste your key">
+    </label>
+    <label>
+      Model <span class="label-hint">(optional override)</span>
+      <input type="text" id="settingModel" autocomplete="off" spellcheck="false" placeholder="defaults to a fast/cheap model">
+    </label>
+    <div class="settings-row">
+      <button id="testApiKey" type="button" class="secondary">Test key</button>
+      <span id="testApiKeyStatus" class="test-key-status"></span>
+    </div>
+
+    <button id="closeSettings">Save & Close</button>
+  </div>
+</div>
+
+<script src="storage.js"></script>
+<script src="ai/prompts.js"></script>
+<script src="ai/pipeline.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>

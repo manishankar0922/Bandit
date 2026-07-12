@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Rocky Desktop Pet",
+  "version": "1.0",
+  "description": "Your AI vibe-coding companion on every page.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "rocky@vibecoding.pet",
+      "strict_min_version": "109.0"
+    }
+  },
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.groq.com/*",
+    "https://integrate.api.nvidia.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["storage.js", "ai/prompts.js", "ai/pipeline.js", "script.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["index.html", "styles.css", "script.js", "storage.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
