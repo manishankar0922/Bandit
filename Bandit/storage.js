@@ -14,14 +14,16 @@
     onboarded: false,
     settings: { size: 1 },
     lastFedAt: 0,
-    provider: 'builtin', // 'builtin' | 'anthropic' | 'openai' | 'gemini' | 'groq' | 'nvidia'
+    provider: 'builtin', // 'builtin' | 'anthropic' | 'openai' | 'gemini' | 'groq'
     apiKey: '',
     model: '', // optional override; empty = provider's default model
     enhanceStyle: 'structured', // 'structured' | 'concise' | 'detailed'
     askPlaceholders: true, // after enhance, ask the user to fill [placeholders]
+    streak: 0, // consecutive days Rocky has been visited
+    lastVisitDay: '', // 'YYYY-MM-DD' of the last counted visit
   };
 
-  const KNOWN_PROVIDERS = ['builtin', 'anthropic', 'openai', 'gemini', 'groq', 'nvidia'];
+  const KNOWN_PROVIDERS = ['builtin', 'anthropic', 'openai', 'gemini', 'groq'];
   const KNOWN_STYLES = ['structured', 'concise', 'detailed'];
 
   const storageApiPresent = !!(api && api.storage && api.storage.local);
@@ -61,6 +63,8 @@
       model: typeof s.model === 'string' ? s.model : (legacyAI && typeof legacyAI.model === 'string' ? legacyAI.model : DEFAULTS.model),
       enhanceStyle: KNOWN_STYLES.includes(s.enhanceStyle) ? s.enhanceStyle : DEFAULTS.enhanceStyle,
       askPlaceholders: typeof s.askPlaceholders === 'boolean' ? s.askPlaceholders : DEFAULTS.askPlaceholders,
+      streak: typeof s.streak === 'number' ? s.streak : DEFAULTS.streak,
+      lastVisitDay: typeof s.lastVisitDay === 'string' ? s.lastVisitDay : DEFAULTS.lastVisitDay,
     };
   }
 

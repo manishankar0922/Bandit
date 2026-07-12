@@ -51,9 +51,16 @@ function detectProviderFromKey(apiKey) {
   if (!key) return null;
   if (key.startsWith('sk-ant-')) return 'anthropic';
   if (key.startsWith('gsk_')) return 'groq';
-  if (key.startsWith('nvapi-')) return 'nvidia';
   if (key.startsWith('sk-proj-') || key.startsWith('sk-')) return 'openai';
   return 'gemini';
+}
+
+// Provider/page-derived error text goes into bubble innerHTML — escape it so
+// a malicious error string can never inject markup into Rocky's shadow DOM.
+function escapeHTML(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
 }
 
 function friendlyError(err) {
@@ -644,7 +651,7 @@ function enhancePrompt() {
     stopThinking();
     console.warn('Rocky: enhance failed', err && err.message);
     setState('idle');
-    say(`couldn't enhance that — ${friendlyError(err)}<br><b>Set up key in settings 🔧</b>`, 4200);
+    say(`couldn't enhance that — ${escapeHTML(friendlyError(err))}<br><b>Set up key in settings 🔧</b>`, 4200);
   });
 }
 
@@ -652,7 +659,7 @@ function updateXPDisplay(){
   const base=LEVELS[level-1],next=LEVELS[level]??xp;
   const pct=Math.min(100,((xp-base)/(next-base))*100);
   xpFill.style.width=pct+'%';
-  xpLabel.innerHTML=`${petName.toUpperCase()} · <b>LVL ${level}</b> · ${xp}/${LEVELS[level]??'MAX'} XP`;
+  xpLabel.innerHTML=`${escapeHTML(petName.toUpperCase())} · <b>LVL ${level}</b> · ${xp}/${LEVELS[level]??'MAX'} XP`;
 }
 
 function gainXP(n, silent = false){
@@ -707,6 +714,7 @@ function clampToViewport(left, top){
 
 /* click vs drag */
 let drag=null;
+let spinTimer=null;
 let lastTap=0;
 
 wrap.addEventListener('contextmenu', e=>{
@@ -737,8 +745,19 @@ wrap.addEventListener('pointerdown',e=>{
     pointerId: e.pointerId,
     offsetX:e.clientX-rect.left,
     offsetY:e.clientY-rect.top,
-    moved:false
+    moved:false,
+    longPressed:false
   };
+  // Hold Rocky still for 600ms (no drag) → he does a spin trick.
+  clearTimeout(spinTimer);
+  spinTimer = setTimeout(()=>{
+    if(!drag || drag.moved) return;
+    drag.longPressed = true;
+    wrap.classList.add('spinning');
+    say('wheee! 🌀', 1600);
+    if(Math.random()<0.3) gainXP(2, true);
+    setTimeout(()=>wrap.classList.remove('spinning'), 750);
+  }, 600);
   // Capture guarantees subsequent pointer events for this pointerId are
   // dispatched to wrap regardless of what's under the cursor — this fixes
   // dragging across an iframe (which would otherwise steal the events into
@@ -807,6 +826,7 @@ window.addEventListener('pointermove',e=>{
     const probe = clampToViewport(e.clientX - drag.offsetX, e.clientY - drag.offsetY);
     if(Math.abs(probe.x - root.offsetLeft)>5 || Math.abs(probe.y - root.offsetTop)>5){
       drag.moved = true;
+      clearTimeout(spinTimer); // a real drag cancels the long-press spin
       drag.offsetX = 60; // Snap to center
       drag.offsetY = 30; // Snap to scruff/neck
       wrap.classList.add('dragging');
@@ -827,11 +847,12 @@ window.addEventListener('pointermove',e=>{
 });
 window.addEventListener('pointerup',e=>{
   if(drag && e.pointerId !== drag.pointerId) return; // a different pointer lifted, not ours
+  clearTimeout(spinTimer);
   wrap.classList.remove('dragging');
   root.style.transition = '';
   if(drag){ try { wrap.releasePointerCapture(drag.pointerId); } catch(err) { /* noop */ } }
   lastActivity = Date.now(); // restart the idle-to-sleep countdown from release, not from grab
-  const wasClick=drag&&!drag.moved;
+  const wasClick=drag&&!drag.moved&&!drag.longPressed; // a spin isn't a click
   const wasDrag=drag&&drag.moved;
   drag=null;
   if(wasDrag){
@@ -855,6 +876,7 @@ window.addEventListener('pointerup',e=>{
 // pointerup for cleanup purposes — but never as a click, so it can't enhance.
 window.addEventListener('pointercancel', e=>{
   if(!drag || e.pointerId !== drag.pointerId) return;
+  clearTimeout(spinTimer);
   wrap.classList.remove('dragging');
   root.style.transition = '';
   try { wrap.releasePointerCapture(drag.pointerId); } catch(err) { /* noop */ }
@@ -942,7 +964,7 @@ function runSummarize(){
       stopThinking();
       console.warn('Rocky: summarize failed', err && err.message);
       setState('idle');
-      say(`couldn't get that summary — ${friendlyError(err)}<br><b>Set up key in settings 🔧</b>`, 4200);
+      say(`couldn't get that summary — ${escapeHTML(friendlyError(err))}<br><b>Set up key in settings 🔧</b>`, 4200);
     });
 }
 
@@ -1330,9 +1352,24 @@ root.style.visibility = '';
 requestAnimationFrame(reclampToViewport);
 window.addEventListener('load', reclampToViewport);
 
+// Daily streak: first visit each local day counts; consecutive days earn +5 XP.
+(function checkDailyStreak(){
+  const fmt = (t)=>{ const d=new Date(t); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+  const today = fmt(Date.now());
+  if(hydrated.lastVisitDay === today) return;
+  const newStreak = hydrated.lastVisitDay === fmt(Date.now()-86400000) ? (hydrated.streak||0)+1 : 1;
+  persist({ lastVisitDay: today, streak: newStreak });
+  if(newStreak >= 2){
+    setTimeout(()=>{
+      gainXP(5, true);
+      say(`🔥 day ${newStreak} streak! <span class="xp-pop">+5 XP</span>`, 3200);
+    }, 2200);
+  }
+})();
+
 if(!hydrated.onboarded){
   setTimeout(()=>{
-    say(`hi, I'm <b>${petName}</b> 🦝<br>you can change my name in Settings!`,4000);
+    say(`hi, I'm <b>${escapeHTML(petName)}</b> 🦝<br>you can change my name in Settings!`,4000);
     persist({ onboarded: true });
   },700);
 } else if(Math.random()<0.35){

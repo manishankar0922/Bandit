@@ -33,8 +33,7 @@ function timeoutSignal(ms) {
   return { signal: controller.signal, cancel: () => clearTimeout(timer) };
 }
 
-async function callProvider(providerId, apiKey, model, systemPrompt, userText) {
-  const req = self.RockyProviders.buildRequest(providerId, { apiKey, model, systemPrompt, userText });
+async function callProviderOnce(providerId, req) {
   const { signal, cancel } = timeoutSignal(FETCH_TIMEOUT_MS);
   try {
     let res;
@@ -42,16 +41,33 @@ async function callProvider(providerId, apiKey, model, systemPrompt, userText) {
       res = await fetch(req.url, { method: 'POST', signal, headers: req.headers, body: JSON.stringify(req.body) });
     } catch (err) {
       if (err && err.name === 'AbortError') throw new Error(`${providerId} request timed out`);
-      throw new Error(`${providerId} network error: ` + ((err && err.message) || String(err)));
+      const e = new Error(`${providerId} network error: ` + ((err && err.message) || String(err)));
+      e.transient = true; // network blips are worth one silent retry
+      throw e;
     }
     let data = {};
     try { data = await res.json(); } catch (err) { data = {}; }
     if (!res.ok) {
-      throw new Error((data.error && data.error.message) || `${providerId} error (HTTP ${res.status})`);
+      const e = new Error((data.error && data.error.message) || `${providerId} error (HTTP ${res.status})`);
+      e.transient = res.status === 429 || res.status >= 500; // rate-limit/server hiccups retry once too
+      throw e;
     }
     return self.RockyProviders.parseResponse(providerId, data);
   } finally {
     cancel();
+  }
+}
+
+async function callProvider(providerId, apiKey, model, systemPrompt, userText) {
+  const req = self.RockyProviders.buildRequest(providerId, { apiKey, model, systemPrompt, userText });
+  try {
+    return await callProviderOnce(providerId, req);
+  } catch (err) {
+    if (!err || !err.transient) throw err;
+    // One automatic retry after a short backoff — invisible to the user
+    // unless it also fails. Auth/permission errors (4xx) never retry.
+    await new Promise((r) => setTimeout(r, 800));
+    return callProviderOnce(providerId, req);
   }
 }
 

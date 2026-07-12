@@ -157,6 +157,13 @@
   .pet-wrap.startled #sleepSprite, .pet-wrap.startled #sideSprite, .pet-wrap.startled #dangleSprite { display: none !important; }
   @keyframes jump-startle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-35px); } }
 
+  .pet-wrap.spinning .pet{animation:spin-trick .7s cubic-bezier(.3,1.2,.5,1)}
+  @keyframes spin-trick{
+    0%{transform:rotate(0) translateY(0) scale(1)}
+    50%{transform:rotate(180deg) translateY(-22px) scale(1.08)}
+    100%{transform:rotate(360deg) translateY(0) scale(1)}
+  }
+
   .pet-wrap.levelup .pet{animation:jump .9s cubic-bezier(.3,1.4,.5,1), glowpulse 1.4s ease}
   @keyframes glowpulse{0%,100%{filter:drop-shadow(0 8px 12px rgba(0,0,0,.5))}40%{filter:drop-shadow(0 0 22px rgba(245,165,36,.9))}}
 

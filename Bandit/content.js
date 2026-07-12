@@ -27,10 +27,13 @@ if (!window.rockyInjected) {
   host.style.height = '100vh';
   document.body.appendChild(host);
 
-  // 2. Attach Shadow DOM
-  const shadow = host.attachShadow({ mode: 'open' });
-  
-  // Make the shadow root globally accessible for our script.js
+  // 2. Attach Shadow DOM — CLOSED so host-page scripts can't reach inside
+  // (with 'open', any page script could read host.shadowRoot and lift the
+  // API key straight out of the settings modal's input field).
+  const shadow = host.attachShadow({ mode: 'closed' });
+
+  // Content scripts run in an isolated world: this window property is visible
+  // to script.js (same world) but NOT to the host page's own JavaScript.
   window.rockyShadowRoot = shadow;
 
   // 3. Fetch index.html with cache busting, and load saved state in parallel.

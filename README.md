@@ -30,6 +30,7 @@ A pixel-art raccoon that lives on every page you browse, turns your rough prompt
 | 🍪 **Feed** | +5 XP snack with a 60s cooldown — pure game mechanic, no AI |
 | 🎮 **Pet sim** | He wanders, sleeps, plays fetch (double-click anywhere), gets petted, watches your cursor, and levels up with visible accessories |
 
+
 Everything persists — XP, level, name, position, settings — and syncs live across all open tabs.
 
 ## With vs. Without Prompting
@@ -91,8 +92,9 @@ Rocky tries AI in this order:
 | Anthropic Claude | `sk-ant-` | claude-haiku | — |
 | OpenAI | `sk-` / `sk-proj-` | gpt-4o-mini | — |
 | Google Gemini | *(none)* | gemini-2.0-flash | ✅ daily quota |
-| Groq | `gsk_` | llama-3.3-70b | ✅ generous |
-| NVIDIA NIM | `nvapi-` | llama-3.3-70b | ✅ generous |
+| Groq | `gsk_` | llama-3.3-70b | ✅ generous, fastest |
+
+Transient failures (network blips, rate limits, 5xx) retry once automatically before you ever see an error.
 
 Pasting a key **auto-selects the matching provider** from its prefix. The **Test key** button makes a tiny real call and shows ✅/❌ with the actual error. An optional Model field overrides the default per provider.
 
@@ -106,6 +108,8 @@ Pasting a key **auto-selects the matching provider** from its prefix. The **Test
 | **Drag Rocky** | Move him anywhere (position persists; he can't be stranded off-screen) |
 | **Double-click empty page space** | Drop an apple — he runs over and eats it (+3 XP) |
 | Rub cursor over him | Hearts + happy eyes (+1 XP, rate-limited) |
+| **Press & hold Rocky (600ms)** | Spin trick 🌀 (30% chance of +2 XP) |
+| Visit daily | 🔥 Streak bonus: +5 XP on every consecutive day |
 | Idle 20s | He falls asleep; any activity startles him awake |
 | Cursor anywhere | His pupils follow it |
 
@@ -123,6 +127,8 @@ XP: Enhance +10 · Summarize +15 · Feed +5 · Fetch +3 · Petting +1.
 ## Privacy & Security
 
 - Your API key is stored **only** in `chrome.storage.local` on your machine, and is sent **only** to your chosen provider's official endpoint, from the extension's background worker — never from page context, never to anyone else.
+- Rocky's UI lives in a **closed shadow DOM** — host-page scripts cannot reach inside it (e.g., to read the API-key field in the settings modal).
+- All provider/page-derived text is HTML-escaped before rendering in Rocky's bubbles — a malicious error string can't inject markup.
 - Nothing is logged in normal operation. Debug mode logs provider name + latency only — **never** prompt text or keys.
 - No analytics, no tracking, no external servers of ours.
 - Page content is read only when *you* trigger Enhance (the text box) or Summarize (visible chat).
@@ -140,7 +146,7 @@ Bandit/
 ├── index.html           # Standalone demo page + injected pet markup
 └── ai/
     ├── pipeline.js      # rockyAIPipeline(): Nano first → BYOK fallback
-    ├── providers.js     # 5-provider registry, 3 format adapters
+    ├── providers.js     # 4-provider registry, 3 format adapters
     └── prompts.js       # Enhance (3 styles) + Summarize system prompts
 ```
 
