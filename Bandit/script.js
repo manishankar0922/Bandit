@@ -289,6 +289,12 @@ let aiSettings={ provider: hydrated.provider||'builtin', apiKey: hydrated.apiKey
 let enhanceStyle=hydrated.enhanceStyle||'structured';
 let askPlaceholders=hydrated.askPlaceholders!==false;
 let lastEnhance=null; // { input, original } — lets the Undo menu restore pre-enhance text
+let history=Array.isArray(hydrated.history)?hydrated.history:[];
+
+function recordHistory(type, text){
+  history=[{type, text, at: Date.now()}, ...history].slice(0,10);
+  persist({ history });
+}
 const FEED_COOLDOWN_MS=60000;
 const LEVELS=[0,20,50,100,200]; // level 1..4 thresholds; 200 caps out at LVL 4
 let lastActivity=Date.now();

@@ -21,6 +21,7 @@
     askPlaceholders: true, // after enhance, ask the user to fill [placeholders]
     streak: 0, // consecutive days Rocky has been visited
     lastVisitDay: '', // 'YYYY-MM-DD' of the last counted visit
+    history: [], // last 10 results: { type: 'enhance'|'summary', text, at }
   };
 
   const KNOWN_PROVIDERS = ['builtin', 'anthropic', 'openai', 'gemini', 'groq'];
@@ -65,6 +66,9 @@
       askPlaceholders: typeof s.askPlaceholders === 'boolean' ? s.askPlaceholders : DEFAULTS.askPlaceholders,
       streak: typeof s.streak === 'number' ? s.streak : DEFAULTS.streak,
       lastVisitDay: typeof s.lastVisitDay === 'string' ? s.lastVisitDay : DEFAULTS.lastVisitDay,
+      history: Array.isArray(s.history)
+        ? s.history.filter(h => h && typeof h.text === 'string' && typeof h.at === 'number').slice(0, 10)
+        : DEFAULTS.history,
     };
   }
 
