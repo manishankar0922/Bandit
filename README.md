@@ -104,7 +104,8 @@ Pasting a key **auto-selects the matching provider** from its prefix. The **Test
 |---|---|
 | Type >7 chars in a text box | Rocky perks up and offers to enhance |
 | **Double-click Rocky** | Enhance the focused/visible text box |
-| **Right-click Rocky** | Menu: Enhance · Undo · Feed · Summarize · Settings |
+| **Right-click Rocky** | Menu: Enhance Prompt · Undo · Summarize Chat · History · Feed Rocky · Settings |
+| **📜 History** | Last 10 Enhance/Summarize results — click any to re-copy it |
 | **Drag Rocky** | Move him anywhere (position persists; he can't be stranded off-screen) |
 | **Double-click empty page space** | Drop an apple — he runs over and eats it (+3 XP) |
 | Rub cursor over him | Hearts + happy eyes (+1 XP, rate-limited) |

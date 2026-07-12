@@ -639,6 +639,7 @@ function enhancePrompt() {
 
     const insertFinal = (text) => {
       setPromptText(hostInput, text.trim());
+      recordHistory('enhance', text.trim());
       gainXP(10);
       setState('happy');
       say('trash → treasure! <span class="xp-pop">+10 XP</span> ✨<br><span style="opacity:.7">changed your mind? menu → ↩️ Undo</span>', 3600);
@@ -934,6 +935,77 @@ if(menuUndo) menuUndo.addEventListener('click',()=>{
   }
 });
 
+/* =========================================================
+   HISTORY — last 10 Enhance/Summarize results, click to copy.
+   ========================================================= */
+function timeAgo(t){
+  const s=Math.max(1,Math.round((Date.now()-t)/1000));
+  if(s<60) return s+'s ago';
+  if(s<3600) return Math.round(s/60)+'m ago';
+  if(s<86400) return Math.round(s/3600)+'h ago';
+  return Math.round(s/86400)+'d ago';
+}
+
+function showHistoryModal(){
+  const overlay=document.createElement('div');
+  overlay.className='modal-overlay show';
+  const modal=document.createElement('div');
+  modal.className='modal';
+  modal.style.maxHeight='70vh';
+  modal.style.overflowY='auto';
+  overlay.appendChild(modal);
+  docBody.appendChild(overlay);
+
+  const close=()=>overlay.remove();
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) close(); });
+
+  const h=document.createElement('h3');
+  h.textContent='📜 History';
+  modal.appendChild(h);
+
+  if(!history.length){
+    const empty=document.createElement('div');
+    empty.style.cssText='font-size:12px;color:#8a95a5;line-height:1.6';
+    empty.textContent='Nothing here yet — enhance a prompt or summarize a chat, and it lands here for re-copying.';
+    modal.appendChild(empty);
+  }
+
+  history.forEach(item=>{
+    const row=document.createElement('button');
+    row.type='button';
+    row.className='secondary';
+    row.style.cssText='text-align:left;white-space:normal;line-height:1.5;display:block;width:100%';
+    const icon=item.type==='summary'?'📋':'✨';
+    const preview=item.text.length>90?item.text.slice(0,90)+'…':item.text;
+    const meta=document.createElement('div');
+    meta.style.cssText='font-size:10px;opacity:.6;margin-bottom:3px';
+    meta.textContent=`${icon} ${item.type} · ${timeAgo(item.at)} · click to copy`;
+    const body=document.createElement('div');
+    body.textContent=preview;
+    row.appendChild(meta);
+    row.appendChild(body);
+    row.addEventListener('click',()=>{
+      copyToClipboard(item.text)
+        .then(()=>{ showToast('copied 📋'); close(); })
+        .catch(()=>{ showToast("couldn't copy 😖"); });
+    });
+    modal.appendChild(row);
+  });
+
+  const done=document.createElement('button');
+  done.type='button';
+  done.textContent='Close';
+  done.addEventListener('click',close);
+  modal.appendChild(done);
+}
+
+const menuHistory = doc.getElementById('menuHistory');
+if(menuHistory) menuHistory.addEventListener('click',()=>{
+  wrap.classList.remove('show-menu');
+  pokeActivity();
+  showHistoryModal();
+});
+
 function runSummarize(){
   if(state==='working') return;
   pokeActivity(); stopRun();
@@ -958,7 +1030,7 @@ function runSummarize(){
   window.rockyAIPipeline(SUMMARIZE_SYSTEM, transcript, {
     actionKey: 'summarize',
     onProgress: (frac) => { stopThinking(); say(`downloading on-device AI… ${Math.round(frac*100)}% 📥`, 0); },
-  }).then(brief => copyToClipboard(brief))
+  }).then(brief => { recordHistory('summary', brief); return copyToClipboard(brief); })
     .then(()=>{
       stopThinking();
       setState('happy');
@@ -1339,6 +1411,7 @@ function applyRemoteState(remote){
   if(typeof remote.lastFedAt==='number') lastFedAt = remote.lastFedAt;
   if(typeof remote.enhanceStyle==='string') enhanceStyle = remote.enhanceStyle;
   if(typeof remote.askPlaceholders==='boolean') askPlaceholders = remote.askPlaceholders;
+  if(Array.isArray(remote.history)) history = remote.history;
   if(changed) updateXPDisplay();
 }
 if(window.RockyStorage) window.RockyStorage.onStateChanged(applyRemoteState);
