@@ -1,5 +1,12 @@
 # 🦝 Rocky — Desktop Pet & AI Prompt Companion
 
+![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
+![Firefox 109+](https://img.shields.io/badge/Firefox-109%2B-FF7139?logo=firefoxbrowser&logoColor=white)
+![Chrome / Edge](https://img.shields.io/badge/Chrome%20%2F%20Edge-supported-4285F4?logo=googlechrome&logoColor=white)
+![AI Providers](https://img.shields.io/badge/AI-Nano%20%C2%B7%20Claude%20%C2%B7%20OpenAI%20%C2%B7%20Gemini%20%C2%B7%20Groq-f5a524)
+![No tracking](https://img.shields.io/badge/telemetry-none-2ea44f)
+![Version](https://img.shields.io/badge/version-1.0-lightgrey)
+
 A pixel-art raccoon that lives on every page you browse, turns your rough prompts into engineered ones, and summarizes AI chats into portable context briefs. Built as a cross-browser WebExtension (Manifest V3).
 
 > Feed him trash prompts. He gives back treasure.
@@ -9,14 +16,16 @@ A pixel-art raccoon that lives on every page you browse, turns your rough prompt
 ## Table of Contents
 
 1. [What Rocky Does](#what-rocky-does)
-2. [With vs. Without Prompting](#with-vs-without-prompting)
-3. [Install](#install)
-4. [AI Setup](#ai-setup)
-5. [Interactions Guide](#interactions-guide)
-6. [Leveling](#leveling)
-7. [Privacy & Security](#privacy--security)
-8. [Project Structure](#project-structure)
-9. [Debugging](#debugging)
+2. [Status Graphs](#status-graphs)
+3. [With vs. Without Prompting](#with-vs-without-prompting)
+4. [Install](#install)
+5. [AI Setup](#ai-setup)
+6. [Interactions Guide](#interactions-guide)
+7. [Leveling](#leveling)
+8. [Privacy & Security](#privacy--security)
+9. [Project Structure](#project-structure)
+10. [Debugging](#debugging)
+11. [Deployment](DEPLOYMENT.md)
 
 ---
 
@@ -32,6 +41,61 @@ A pixel-art raccoon that lives on every page you browse, turns your rough prompt
 
 
 Everything persists — XP, level, name, position, settings — and syncs live across all open tabs.
+
+## Status Graphs
+
+### AI pipeline — how a request finds its model
+
+```mermaid
+flowchart TD
+    A["✨ Enhance / 📋 Summarize"] --> RL{"rate limit OK?<br/>(3s per action)"}
+    RL -- no --> ERR1["bubble: slow down 🦝"]
+    RL -- yes --> N{"Chrome built-in AI<br/>(Gemini Nano) available?"}
+    N -- yes --> NANO["on-device generation<br/>free · private · no key"]
+    N -- "no / failed" --> B{"provider = built-in only?"}
+    B -- yes --> ERR2["bubble: on-device AI unavailable"]
+    B -- no --> SW["background worker<br/>reads provider + key<br/>from chrome.storage.local"]
+    SW --> P["Anthropic / OpenAI /<br/>Gemini / Groq"]
+    P -- "429 / 5xx / network" --> RETRY["1 silent retry<br/>(800ms backoff)"]
+    RETRY --> P
+    P -- ok --> OUT["result → text box or clipboard<br/>+ XP + 📜 history"]
+    NANO --> OUT
+```
+
+### Pet behavior — Rocky's state machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> idle
+    idle --> running: wander timer (~8s, 40%)
+    running --> idle: reached target
+    idle --> sleeping: 20s no activity
+    sleeping --> startled: poked / clicked
+    startled --> idle
+    idle --> working: Enhance / Summarize
+    working --> happy: success (+XP)
+    working --> idle: error (friendly bubble)
+    happy --> idle
+    idle --> dragging: pointer grab
+    dragging --> idle: release (position saved)
+    idle --> spinning: press & hold 600ms
+    spinning --> idle
+```
+
+### XP economy — where growth comes from
+
+```mermaid
+flowchart LR
+    E["✨ Enhance<br/>+10 XP"] --> XP(("XP pool"))
+    S["📋 Summarize<br/>+15 XP"] --> XP
+    F["🍪 Feed<br/>+5 XP / 60s"] --> XP
+    FE["🍎 Fetch<br/>+3 XP"] --> XP
+    P["❤️ Petting<br/>+1 XP"] --> XP
+    ST["🔥 Daily streak<br/>+5 XP"] --> XP
+    XP --> L2["LVL 2 @ 20 — 😎 shades"]
+    L2 --> L3["LVL 3 @ 50 — 🧣 scarf"]
+    L3 --> L4["LVL 4 @ 100 — 👑 crown"]
+```
 
 ## With vs. Without Prompting
 

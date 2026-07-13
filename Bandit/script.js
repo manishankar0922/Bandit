@@ -187,7 +187,6 @@ function group(cls,parentSvg){
   if(cls)g.setAttribute('class',cls);
   parentSvg.appendChild(g);return g;
 }
-function draw(shapes,g){shapes.forEach(([x,y,w,h,c])=>rect(x,y,w,h,C[c]||c,g));}
 
 /* =========================================================
    SPRITE 1 — THE CLASSIC (front-facing, your favorite)
@@ -289,11 +288,12 @@ let aiSettings={ provider: hydrated.provider||'builtin', apiKey: hydrated.apiKey
 let enhanceStyle=hydrated.enhanceStyle||'structured';
 let askPlaceholders=hydrated.askPlaceholders!==false;
 let lastEnhance=null; // { input, original } — lets the Undo menu restore pre-enhance text
-let history=Array.isArray(hydrated.history)?hydrated.history:[];
+// Named copyHistory (not `history`) to avoid shadowing window.history.
+let copyHistory=Array.isArray(hydrated.history)?hydrated.history:[];
 
 function recordHistory(type, text){
-  history=[{type, text, at: Date.now()}, ...history].slice(0,10);
-  persist({ history });
+  copyHistory=[{type, text, at: Date.now()}, ...copyHistory].slice(0,10);
+  persist({ history: copyHistory });
 }
 const FEED_COOLDOWN_MS=60000;
 const LEVELS=[0,20,50,100,200]; // level 1..4 thresholds; 200 caps out at LVL 4
@@ -520,21 +520,34 @@ function extractPlaceholders(text) {
   return [...found];
 }
 
-// Asks one question per placeholder in a mini-modal (reuses settings-modal
-// styling). Skipped/dismissed placeholders stay bracketed in the output.
-function askPlaceholderValues(text, placeholders, done) {
+// Shared builder for Rocky's dynamic mini-modals (placeholder Q&A, history).
+// Overlay click dismisses; onClose fires exactly once however it closes.
+function openRockyModal(onClose) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay show';
   const modal = document.createElement('div');
   modal.className = 'modal';
   overlay.appendChild(modal);
   docBody.appendChild(overlay);
+  let closed = false;
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    overlay.remove();
+    if (onClose) onClose();
+  };
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  return { modal, close };
+}
 
+// Asks one question per placeholder in a mini-modal (reuses settings-modal
+// styling). Skipped/dismissed placeholders stay bracketed in the output.
+function askPlaceholderValues(text, placeholders, done) {
   let i = 0;
   let out = text;
 
-  const finish = () => { overlay.remove(); done(out); };
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(); });
+  // Dismissing at any point delivers whatever was answered so far.
+  const { modal, close: finish } = openRockyModal(() => done(out));
 
   const answer = (val) => {
     if (val) out = out.split('[' + placeholders[i] + ']').join(val);
@@ -947,30 +960,20 @@ function timeAgo(t){
 }
 
 function showHistoryModal(){
-  const overlay=document.createElement('div');
-  overlay.className='modal-overlay show';
-  const modal=document.createElement('div');
-  modal.className='modal';
-  modal.style.maxHeight='70vh';
-  modal.style.overflowY='auto';
-  overlay.appendChild(modal);
-  docBody.appendChild(overlay);
-
-  const close=()=>overlay.remove();
-  overlay.addEventListener('click',e=>{ if(e.target===overlay) close(); });
+  const { modal, close } = openRockyModal();
 
   const h=document.createElement('h3');
   h.textContent='📜 History';
   modal.appendChild(h);
 
-  if(!history.length){
+  if(!copyHistory.length){
     const empty=document.createElement('div');
     empty.style.cssText='font-size:12px;color:#8a95a5;line-height:1.6';
     empty.textContent='Nothing here yet — enhance a prompt or summarize a chat, and it lands here for re-copying.';
     modal.appendChild(empty);
   }
 
-  history.forEach(item=>{
+  copyHistory.forEach(item=>{
     const row=document.createElement('button');
     row.type='button';
     row.className='secondary';
@@ -1411,7 +1414,7 @@ function applyRemoteState(remote){
   if(typeof remote.lastFedAt==='number') lastFedAt = remote.lastFedAt;
   if(typeof remote.enhanceStyle==='string') enhanceStyle = remote.enhanceStyle;
   if(typeof remote.askPlaceholders==='boolean') askPlaceholders = remote.askPlaceholders;
-  if(Array.isArray(remote.history)) history = remote.history;
+  if(Array.isArray(remote.history)) copyHistory = remote.history;
   if(changed) updateXPDisplay();
 }
 if(window.RockyStorage) window.RockyStorage.onStateChanged(applyRemoteState);
