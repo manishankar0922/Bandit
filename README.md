@@ -160,6 +160,8 @@ Rocky tries AI in this order:
 
 Transient failures (network blips, rate limits, 5xx) retry once automatically before you ever see an error.
 
+**Load balancing / failover:** keys are saved *per provider* — switch the dropdown, paste a key, save, repeat. If your primary provider fails (quota exhausted, outage), Rocky automatically fails over to the next provider you have a key for, in the same request. You only see an error when *every* saved provider fails.
+
 Pasting a key **auto-selects the matching provider** from its prefix. The **Test key** button makes a tiny real call and shows ✅/❌ with the actual error. An optional Model field overrides the default per provider.
 
 ## Interactions Guide

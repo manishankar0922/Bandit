@@ -284,7 +284,7 @@ let state='idle';
 let xp=hydrated.xp, level=hydrated.level;
 let petName=hydrated.petName;
 let lastFedAt=hydrated.lastFedAt||0;
-let aiSettings={ provider: hydrated.provider||'builtin', apiKey: hydrated.apiKey||'', model: hydrated.model||'' };
+let aiSettings={ provider: hydrated.provider||'builtin', apiKey: hydrated.apiKey||'', model: hydrated.model||'', apiKeys: hydrated.apiKeys||{} };
 let enhanceStyle=hydrated.enhanceStyle||'structured';
 let askPlaceholders=hydrated.askPlaceholders!==false;
 let lastEnhance=null; // { input, original } — lets the Undo menu restore pre-enhance text
@@ -1190,20 +1190,31 @@ if(settingApiKey) settingApiKey.addEventListener('input', ()=>{
   if(detected && settingProvider) settingProvider.value = detected;
 });
 
+// Switching provider swaps the key field to that provider's saved key,
+// so users can stash one key per provider (fuels the failover chain).
+if(settingProvider) settingProvider.addEventListener('change', ()=>{
+  if(settingApiKey) settingApiKey.value = aiSettings.apiKeys[settingProvider.value] || '';
+});
+
 const closeSettings = doc.getElementById('closeSettings');
 if(closeSettings) closeSettings.addEventListener('click',()=>{
   settingsModal.classList.remove('show');
   petName = settingName.value.trim() || 'Rocky';
   updateXPDisplay();
 
+  const chosenProvider = settingProvider ? (settingProvider.value || 'builtin') : aiSettings.provider;
+  const enteredKey = settingApiKey ? settingApiKey.value.trim() : aiSettings.apiKey;
+  const newApiKeys = { ...aiSettings.apiKeys };
+  if(chosenProvider !== 'builtin') newApiKeys[chosenProvider] = enteredKey; // '' clears that slot
   aiSettings = {
-    provider: settingProvider ? (settingProvider.value || 'builtin') : aiSettings.provider,
-    apiKey: settingApiKey ? settingApiKey.value.trim() : aiSettings.apiKey,
+    provider: chosenProvider,
+    apiKey: enteredKey,
     model: settingModel ? settingModel.value.trim() : aiSettings.model,
+    apiKeys: newApiKeys,
   };
   if(settingStyle) enhanceStyle = settingStyle.value || 'structured';
   if(settingAskPlaceholders) askPlaceholders = settingAskPlaceholders.checked;
-  persist({ petName, provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model, enhanceStyle, askPlaceholders });
+  persist({ petName, provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model, apiKeys: newApiKeys, enhanceStyle, askPlaceholders });
 });
 
 settingSize.addEventListener('input', e=>{
@@ -1404,11 +1415,12 @@ function applyRemoteState(remote){
     applyAccessories(level);
     changed=true;
   }
-  if(typeof remote.provider==='string' || typeof remote.apiKey==='string' || typeof remote.model==='string'){
+  if(typeof remote.provider==='string' || typeof remote.apiKey==='string' || typeof remote.model==='string' || remote.apiKeys){
     aiSettings = {
       provider: typeof remote.provider==='string' ? remote.provider : aiSettings.provider,
       apiKey: typeof remote.apiKey==='string' ? remote.apiKey : aiSettings.apiKey,
       model: typeof remote.model==='string' ? remote.model : aiSettings.model,
+      apiKeys: remote.apiKeys && typeof remote.apiKeys==='object' ? remote.apiKeys : aiSettings.apiKeys,
     };
   }
   if(typeof remote.lastFedAt==='number') lastFedAt = remote.lastFedAt;

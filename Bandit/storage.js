@@ -15,7 +15,8 @@
     settings: { size: 1 },
     lastFedAt: 0,
     provider: 'builtin', // 'builtin' | 'anthropic' | 'openai' | 'gemini' | 'groq'
-    apiKey: '',
+    apiKey: '', // key for the active provider (kept for back-compat)
+    apiKeys: {}, // per-provider saved keys — enables automatic failover
     model: '', // optional override; empty = provider's default model
     enhanceStyle: 'structured', // 'structured' | 'concise' | 'detailed'
     askPlaceholders: true, // after enhance, ask the user to fill [placeholders]
@@ -61,6 +62,20 @@
         ? s.provider
         : (migratedProvider || DEFAULTS.provider),
       apiKey: typeof s.apiKey === 'string' ? s.apiKey : (migratedApiKey || DEFAULTS.apiKey),
+      apiKeys: (() => {
+        const out = {};
+        if (s.apiKeys && typeof s.apiKeys === 'object') {
+          for (const p of KNOWN_PROVIDERS) {
+            if (typeof s.apiKeys[p] === 'string' && s.apiKeys[p]) out[p] = s.apiKeys[p];
+          }
+        }
+        // Migrate a pre-map single key into its provider's slot.
+        const single = typeof s.apiKey === 'string' ? s.apiKey : '';
+        if (single && typeof s.provider === 'string' && s.provider !== 'builtin' && !out[s.provider]) {
+          out[s.provider] = single;
+        }
+        return out;
+      })(),
       model: typeof s.model === 'string' ? s.model : (legacyAI && typeof legacyAI.model === 'string' ? legacyAI.model : DEFAULTS.model),
       enhanceStyle: KNOWN_STYLES.includes(s.enhanceStyle) ? s.enhanceStyle : DEFAULTS.enhanceStyle,
       askPlaceholders: typeof s.askPlaceholders === 'boolean' ? s.askPlaceholders : DEFAULTS.askPlaceholders,
@@ -114,6 +129,7 @@
         ...partial,
         position: partial && partial.position ? { ...memoryState.position, ...partial.position } : memoryState.position,
         settings: partial && partial.settings ? { ...memoryState.settings, ...partial.settings } : memoryState.settings,
+        apiKeys: partial && partial.apiKeys ? { ...memoryState.apiKeys, ...partial.apiKeys } : memoryState.apiKeys,
       });
       pending = memoryState;
 
