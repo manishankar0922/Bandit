@@ -1,4 +1,4 @@
-# 🦝 Rocky — Desktop Pet & AI Prompt Companion
+# 🦝 Bandit — Desktop Pet & AI Prompt Companion
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Get_Add--on-FF7139?logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/en-US/firefox/addon/bandit/)
