@@ -1,7 +1,7 @@
 # 🦝 Rocky — Desktop Pet & AI Prompt Companion
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
-![Firefox 109+](https://img.shields.io/badge/Firefox-109%2B-FF7139?logo=firefoxbrowser&logoColor=white)
+[![Firefox Add-on](https://img.shields.io/badge/Firefox-Get_Add--on-FF7139?logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/en-US/firefox/addon/bandit/)
 ![Chrome / Edge](https://img.shields.io/badge/Chrome%20%2F%20Edge-supported-4285F4?logo=googlechrome&logoColor=white)
 ![AI Providers](https://img.shields.io/badge/AI-Nano%20%C2%B7%20Claude%20%C2%B7%20OpenAI%20%C2%B7%20Gemini%20%C2%B7%20Groq-f5a524)
 ![No tracking](https://img.shields.io/badge/telemetry-none-2ea44f)
