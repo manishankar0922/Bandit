@@ -629,8 +629,15 @@ function enhancePrompt() {
     val = hostInput.value;
   }
 
-  if (!val || val.trim() === '') {
+  const trimmedVal = val.trim();
+  if (!trimmedVal) {
     say("You have to type something first! 🥺", 3000);
+    return;
+  }
+
+  const fluffRegex = /^(hi+|hello+|helo+|hey+|bye+|thanks+|thank you+|ok+|okay+)[.!?\s]*$/i;
+  if (fluffRegex.test(trimmedVal) || trimmedVal.length < 5) {
+    say("That's a bit too short for me to enhance! 🐾", 3000);
     return;
   }
 
