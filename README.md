@@ -2,7 +2,7 @@
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Get_Add--on-FF7139?logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/en-US/firefox/addon/bandit/)
-![Chrome / Edge](https://img.shields.io/badge/Chrome%20%2F%20Edge-supported-4285F4?logo=googlechrome&logoColor=white)
+![Chrome / Edge](https://img.shields.io/badge/Chrome%20%2F%20Edge-Coming%20Soon-4285F4?logo=googlechrome&logoColor=white)
 ![AI Providers](https://img.shields.io/badge/AI-Nano%20%C2%B7%20Claude%20%C2%B7%20OpenAI%20%C2%B7%20Gemini%20%C2%B7%20Groq-f5a524)
 ![No tracking](https://img.shields.io/badge/telemetry-none-2ea44f)
 ![Version](https://img.shields.io/badge/version-1.0-lightgrey)
@@ -71,24 +71,16 @@ OUTPUT: A functional login page wired to a working auth endpoint, ready to run.
 
 The enhance prompts follow established prompt-engineering practice: role anchoring, a silent analyze-before-writing process, one few-shot example to pin the format, explicit negative rules (never invent details, never bracket-spam placeholders), and verifiable requirements. See [`Bandit/ai/prompts.js`](Bandit/ai/prompts.js).
 
-## Install
+## Availability
 
-### Firefox (temporary add-on)
+**Currently Available For:**
+- **Firefox:** Download it directly from the [Mozilla Add-ons Store](https://addons.mozilla.org/en-US/firefox/addon/bandit/).
 
-1. Open `about:debugging#/runtime/this-firefox`
-2. Click **Load Temporary Add-on…**
-3. Select `Bandit/manifest.json`
-4. Refresh any open tab — Rocky appears bottom-right
-
-### Chrome / Edge (unpacked)
-
-> ⚠️ The manifest currently ships `background.scripts` (Firefox event page). For Chromium, change the `background` key in `Bandit/manifest.json` to `"background": { "service_worker": "background.js" }` before loading — `background.js` auto-detects either mode.
-
-1. Open `chrome://extensions`, enable **Developer mode**
-2. Click **Load unpacked**, select the `Bandit/` folder
-3. Refresh any open tab
-
-After any change to `manifest.json`, fully reload the extension from the extensions page — a page refresh is not enough.
+**Coming Soon:**
+Rocky is currently being optimized for cross-platform support. In future updates, Rocky will be officially available on:
+- Google Chrome & Microsoft Edge
+- Other popular browsers
+- Desktop IDEs (VS Code, Cursor, etc.)
 
 ## AI Setup
 
