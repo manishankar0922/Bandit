@@ -16,16 +16,16 @@ A pixel-art raccoon that lives on every page you browse, turns your rough prompt
 ## Table of Contents
 
 1. [What Rocky Does](#what-rocky-does)
-2. [Status Graphs](#status-graphs)
-3. [With vs. Without Prompting](#with-vs-without-prompting)
-4. [Install](#install)
-5. [AI Setup](#ai-setup)
-6. [Interactions Guide](#interactions-guide)
-7. [Leveling](#leveling)
-8. [Privacy & Security](#privacy--security)
-9. [Project Structure](#project-structure)
-10. [Debugging](#debugging)
-11. [Deployment](DEPLOYMENT.md)
+2. [With vs. Without Prompting](#with-vs-without-prompting)
+3. [Install](#install)
+4. [AI Setup](#ai-setup)
+5. [Interactions Guide](#interactions-guide)
+6. [Leveling](#leveling)
+7. [Privacy & Security](#privacy--security)
+8. [Project Structure](#project-structure)
+9. [Debugging](#debugging)
+10. [Deployment](DEPLOYMENT.md)
+11. [Contributing](#contributing)
 
 ---
 
@@ -42,60 +42,6 @@ A pixel-art raccoon that lives on every page you browse, turns your rough prompt
 
 Everything persists — XP, level, name, position, settings — and syncs live across all open tabs.
 
-## Status Graphs
-
-### AI pipeline — how a request finds its model
-
-```mermaid
-flowchart TD
-    A["✨ Enhance / 📋 Summarize"] --> RL{"rate limit OK?<br/>(3s per action)"}
-    RL -- no --> ERR1["bubble: slow down 🦝"]
-    RL -- yes --> N{"Chrome built-in AI<br/>(Gemini Nano) available?"}
-    N -- yes --> NANO["on-device generation<br/>free · private · no key"]
-    N -- "no / failed" --> B{"provider = built-in only?"}
-    B -- yes --> ERR2["bubble: on-device AI unavailable"]
-    B -- no --> SW["background worker<br/>reads provider + key<br/>from chrome.storage.local"]
-    SW --> P["Anthropic / OpenAI /<br/>Gemini / Groq"]
-    P -- "429 / 5xx / network" --> RETRY["1 silent retry<br/>(800ms backoff)"]
-    RETRY --> P
-    P -- ok --> OUT["result → text box or clipboard<br/>+ XP + 📜 history"]
-    NANO --> OUT
-```
-
-### Pet behavior — Rocky's state machine
-
-```mermaid
-stateDiagram-v2
-    [*] --> idle
-    idle --> running: wander timer (~8s, 40%)
-    running --> idle: reached target
-    idle --> sleeping: 20s no activity
-    sleeping --> startled: poked / clicked
-    startled --> idle
-    idle --> working: Enhance / Summarize
-    working --> happy: success (+XP)
-    working --> idle: error (friendly bubble)
-    happy --> idle
-    idle --> dragging: pointer grab
-    dragging --> idle: release (position saved)
-    idle --> spinning: press & hold 600ms
-    spinning --> idle
-```
-
-### XP economy — where growth comes from
-
-```mermaid
-flowchart LR
-    E["✨ Enhance<br/>+10 XP"] --> XP(("XP pool"))
-    S["📋 Summarize<br/>+15 XP"] --> XP
-    F["🍪 Feed<br/>+5 XP / 60s"] --> XP
-    FE["🍎 Fetch<br/>+3 XP"] --> XP
-    P["❤️ Petting<br/>+1 XP"] --> XP
-    ST["🔥 Daily streak<br/>+5 XP"] --> XP
-    XP --> L2["LVL 2 @ 20 — 😎 shades"]
-    L2 --> L3["LVL 3 @ 50 — 🧣 scarf"]
-    L3 --> L4["LVL 4 @ 100 — 👑 crown"]
-```
 
 ## With vs. Without Prompting
 
@@ -222,3 +168,7 @@ Bandit/
 - On any page, set `localStorage.rocky_debug = "1"` in DevTools → console logs show which provider handled each call and latency.
 - Load failures show a red banner bottom-right with the actual error — no DevTools needed.
 - Background worker showing **Stopped** in `about:debugging` is normal MV3 idle behavior; it wakes on the next message.
+
+## Contributing
+
+**Note:** I do not accept Pull Requests (PRs) from anyone without explicit prior permission. This repository is provided for transparency and open-source visibility, but it is currently maintained as a solo project. Please do not submit pull requests.
