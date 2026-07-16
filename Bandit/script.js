@@ -774,6 +774,13 @@ function enhancePrompt() {
     onProgress: (frac) => { stopThinking(); say(`downloading on-device AI… ${Math.round(frac*100)}% 📥`, 0); },
   }).then(result => {
     stopThinking();
+    
+    if (result.trim() === 'ERROR_GIBBERISH') {
+      setState('idle');
+      say('Hmm, that doesn\'t look like a real coding prompt. Can you be more specific? 🤔', 4000);
+      return;
+    }
+
     lastEnhance = { inputRef: typeof WeakRef !== 'undefined' ? new WeakRef(hostInput) : hostInput, original: val };
 
     const insertFinal = (text) => {
