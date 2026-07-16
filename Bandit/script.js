@@ -581,6 +581,16 @@ const PLACEHOLDER_SUGGESTIONS = [
   // Each entry: regex tested against the FULL placeholder text, options shown.
   // Patterns use word boundaries and multi-word anchors to avoid false matches
   // (e.g. "storage" alone shouldn't suggest databases — "data storage" should).
+  // General / Writing / Design
+  { re: /\b(target\s+audience|audience|readers)\b/i,
+    opts: ['Beginners', 'Experts / Professionals', 'General Public', 'Children'] },
+  { re: /\b(tone|style|voice)\b/i,
+    opts: ['Professional & Formal', 'Casual & Friendly', 'Humorous', 'Academic / Objective'] },
+  { re: /\b(visual\s+style|art\s+style|aesthetic)\b/i,
+    opts: ['Photorealistic', 'Vector Illustration', 'Anime / Manga', '3D Render'] },
+  { re: /\b(format|medium)\b/i,
+    opts: ['Blog Post', 'Email Newsletter', 'Social Media Post', 'Academic Essay'] },
+  // Coding / Tech
   { re: /\b(tech\s*stack|framework|your\s+stack|front\s*end\s+stack)\b/i,
     opts: ['React + Node.js', 'Next.js', 'Vue + Express', 'Plain HTML/CSS/JS'] },
   { re: /\b(database|data\s*base|db\s+engine|data\s+storage|your\s+db)\b/i,
