@@ -25,6 +25,23 @@ if (typeof self.RockyStorage === 'undefined' || typeof self.RockyProviders === '
     }
   }
 }
+
+api.runtime.onInstalled.addListener(() => {
+  api.contextMenus.create({
+    id: "bandit-enhance",
+    title: "Enhance with Bandit ✨",
+    contexts: ["selection"]
+  });
+});
+
+api.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === "bandit-enhance") {
+    api.tabs.sendMessage(tab.id, { 
+      type: "ROCKY_TRIGGER_ENHANCE", 
+      text: info.selectionText 
+    }).catch(() => {}); // ignore errors if content script not loaded
+  }
+});
 const FETCH_TIMEOUT_MS = 30000;
 
 function timeoutSignal(ms) {

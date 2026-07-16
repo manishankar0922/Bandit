@@ -794,11 +794,18 @@ function enhancePrompt() {
     lastEnhance = { inputRef: typeof WeakRef !== 'undefined' ? new WeakRef(hostInput) : hostInput, original: val };
 
     const insertFinal = (text) => {
-      setPromptText(hostInput, text.trim());
-      recordHistory('enhance', text.trim());
+      const finalStr = text.trim();
+      recordHistory('enhance', finalStr);
       gainXP(10);
       setState('happy');
-      say('trash → treasure! <span class="xp-pop">+10 XP</span> ✨<br><span style="opacity:.7">menu → ↩️ Undo to revert</span>', 3600);
+
+      if (hostInput.isContextMenu) {
+        navigator.clipboard.writeText(finalStr).catch(()=>{});
+        say('copied enhanced prompt to clipboard! 📋✨', 4000);
+      } else {
+        setPromptText(hostInput, finalStr);
+        say('trash → treasure! <span class="xp-pop">+10 XP</span> ✨<br><span style="opacity:.7">menu → ↩️ Undo to revert</span>', 3600);
+      }
       setTimeout(()=>{if(state==='happy')setState('idle');}, 1150);
     };
 
@@ -1692,6 +1699,24 @@ if(!hydrated.onboarded){
   },1400);
 }
 setTimeout(()=>{if(state==='idle')startRun();},4200);
+// Listen for context menu requests
+if (rockyApi && rockyApi.runtime && rockyApi.runtime.onMessage) {
+  rockyApi.runtime.onMessage.addListener((msg) => {
+    if (msg.type === "ROCKY_TRIGGER_ENHANCE" && msg.text) {
+      if (state !== 'idle') return;
+      const dummyInput = {
+        value: msg.text,
+        focus: () => {},
+        setAttribute: () => {},
+        removeAttribute: () => {},
+        isContextMenu: true
+      };
+      // We simulate a host input so enhancePrompt can run exactly as usual
+      enhancePrompt(dummyInput, msg.text);
+    }
+  });
+}
+
 }
 
 // Auto-run if we are not in the Chrome Extension environment

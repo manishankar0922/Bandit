@@ -12,7 +12,7 @@
       }
     }
   },
-  "permissions": ["storage"],
+  "permissions": ["storage", "contextMenus", "clipboardWrite"],
   "host_permissions": [
     "https://api.anthropic.com/*",
     "https://api.openai.com/*",

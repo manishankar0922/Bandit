@@ -33,7 +33,8 @@ A pixel-art raccoon that lives on every page you browse, turns your rough prompt
 
 | Feature | What it means |
 |---|---|
-| ✨ **Enhance** | Rewrites the prompt in any text box into a structured, engineered prompt — 3 styles: Structured, Concise, Detailed. Trigger via double-click, right-click menu, or **Ctrl+Shift+E** |
+| ✨ **Enhance** | Rewrites the prompt in any text box into a "God-Tier", engineered prompt using advanced AI psychology (personas, chain-of-thought). Universal across all domains (Code, Writing, Design). Trigger via double-click, right-click menu, or **Ctrl+Shift+E** |
+| 🖱️ **Context Menu** | Select *any text on any webpage*, right-click -> "Enhance with Bandit ✨". The God-Tier prompt is instantly generated and copied to your clipboard! |
 | 📋 **Summarize** | Scrapes the visible AI chat (claude.ai, gemini.google.com, chatgpt.com, or any page) into a 250-word context brief, copied to your clipboard |
 | ↩️ **Undo** | Restores your original text after an Enhance |
 | 🍪 **Feed** | +5 XP snack with a 60s cooldown — pure game mechanic, no AI |
