@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rocky — Final (Classic + Runner)</title>
+<title>Bandit — AI Prompt Companion</title>
   <link rel="stylesheet" href="styles.css">
 
 </head>
@@ -13,7 +13,7 @@
   <div class="topbar">
     <div class="logo"></div>
     <b>VibeBuild</b><span>— untitled-project-7</span>
-    <span class="demo-tag">FINAL DEMO · classic Rocky + 4-leg running 🐾</span>
+    <span class="demo-tag">DEMO · Bandit Desktop Pet 🐾</span>
   </div>
   <div class="stage">
     <div id="rocky-root">
@@ -24,7 +24,7 @@
       <button id="menuUndo">↩️ Undo</button>
       <button id="menuSummarize">📋 Summarize Chat</button>
       <button id="menuHistory">📜 History</button>
-      <button id="menuFeed">🍪 Feed Rocky</button>
+      <button id="menuFeed">🍪 Feed Bandit</button>
       <button id="menuSettings">⚙️ Settings</button>
     </div>
     <div class="emote" id="startleEmote" style="display:none;position:absolute;top:-10px;font-size:28px;z-index:10;animation:pop .3s cubic-bezier(.3,1.4,.5,1)">❗️</div>
@@ -43,14 +43,14 @@
 
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
-    <h3>Pet Settings</h3>
+    <h3>Bandit Settings</h3>
     
     <div class="xp-bar" style="opacity:1; transform:none; pointer-events:auto; margin:0 0 4px 0; width:100%; max-width:none; background:#0f1318;"><div class="xp-fill" id="xpFill"></div></div>
-    <div class="xp-label" id="xpLabel" style="opacity:1; transform:none; pointer-events:auto; margin-bottom:16px;">ROCKY · <b>LVL 1</b> · 0/20 XP</div>
+    <div class="xp-label" id="xpLabel" style="opacity:1; transform:none; pointer-events:auto; margin-bottom:16px;">BANDIT · <b>LVL 1</b> · 0/20 XP</div>
 
     <label>
       Name
-      <input type="text" id="settingName" value="Rocky" autocomplete="off" spellcheck="false">
+      <input type="text" id="settingName" value="Bandit" autocomplete="off" spellcheck="false" maxlength="32">
     </label>
     <label>
       Size (<span id="sizeValue">100%</span>)
@@ -84,7 +84,7 @@
       </select>
     </label>
     <label>
-      API Key <span class="label-hint">(saved per provider — add keys for several and Rocky fails over automatically)</span>
+      API Key <span class="label-hint">(saved per provider — add keys for several and Bandit fails over automatically)</span>
       <input type="password" id="settingApiKey" autocomplete="off" spellcheck="false" placeholder="paste your key">
     </label>
     <label>

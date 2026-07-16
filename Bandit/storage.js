@@ -9,7 +9,7 @@
   const DEFAULTS = {
     xp: 0,
     level: 1,
-    petName: 'Rocky',
+    petName: 'Bandit',
     position: { x: null, y: null },
     onboarded: false,
     settings: { size: 1 },
@@ -45,19 +45,19 @@
     const migratedApiKey = legacyAI && typeof legacyAI.apiKey === 'string' ? legacyAI.apiKey : null;
 
     return {
-      xp: typeof s.xp === 'number' ? s.xp : DEFAULTS.xp,
-      level: typeof s.level === 'number' ? s.level : DEFAULTS.level,
-      petName: typeof s.petName === 'string' && s.petName.trim() ? s.petName : DEFAULTS.petName,
+      xp: (typeof s.xp === 'number' && Number.isFinite(s.xp) && s.xp >= 0) ? s.xp : DEFAULTS.xp,
+      level: (typeof s.level === 'number' && Number.isInteger(s.level) && s.level >= 1) ? s.level : DEFAULTS.level,
+      petName: typeof s.petName === 'string' && s.petName.trim() ? s.petName.slice(0, 32) : DEFAULTS.petName,
       position: {
-        x: typeof s.position?.x === 'number' ? s.position.x : DEFAULTS.position.x,
-        y: typeof s.position?.y === 'number' ? s.position.y : DEFAULTS.position.y,
+        x: (typeof s.position?.x === 'number' && Number.isFinite(s.position.x)) ? s.position.x : DEFAULTS.position.x,
+        y: (typeof s.position?.y === 'number' && Number.isFinite(s.position.y)) ? s.position.y : DEFAULTS.position.y,
       },
       onboarded: typeof s.onboarded === 'boolean' ? s.onboarded : DEFAULTS.onboarded,
       settings: {
         ...DEFAULTS.settings,
         ...(s.settings && typeof s.settings === 'object' ? s.settings : {}),
       },
-      lastFedAt: typeof s.lastFedAt === 'number' ? s.lastFedAt : DEFAULTS.lastFedAt,
+      lastFedAt: (typeof s.lastFedAt === 'number' && Number.isFinite(s.lastFedAt) && s.lastFedAt >= 0) ? s.lastFedAt : DEFAULTS.lastFedAt,
       provider: typeof s.provider === 'string' && KNOWN_PROVIDERS.includes(s.provider)
         ? s.provider
         : (migratedProvider || DEFAULTS.provider),
@@ -79,10 +79,10 @@
       model: typeof s.model === 'string' ? s.model : (legacyAI && typeof legacyAI.model === 'string' ? legacyAI.model : DEFAULTS.model),
       enhanceStyle: KNOWN_STYLES.includes(s.enhanceStyle) ? s.enhanceStyle : DEFAULTS.enhanceStyle,
       askPlaceholders: typeof s.askPlaceholders === 'boolean' ? s.askPlaceholders : DEFAULTS.askPlaceholders,
-      streak: typeof s.streak === 'number' ? s.streak : DEFAULTS.streak,
+      streak: (typeof s.streak === 'number' && Number.isFinite(s.streak) && s.streak >= 0) ? s.streak : DEFAULTS.streak,
       lastVisitDay: typeof s.lastVisitDay === 'string' ? s.lastVisitDay : DEFAULTS.lastVisitDay,
       history: Array.isArray(s.history)
-        ? s.history.filter(h => h && typeof h.text === 'string' && typeof h.at === 'number').slice(0, 10)
+        ? s.history.filter(h => h && typeof h.type === 'string' && typeof h.text === 'string' && typeof h.at === 'number').slice(0, 10)
         : DEFAULTS.history,
     };
   }
@@ -99,7 +99,7 @@
       memoryState = mergeDefaults(result ? result[STORAGE_KEY] : null);
       return clone(memoryState);
     } catch (err) {
-      console.warn('Rocky: storage.local.get failed, falling back to in-memory state', err);
+      console.warn('Bandit: storage.local.get failed, falling back to in-memory state', err);
       storageAvailable = false;
       return clone(memoryState);
     }
@@ -114,7 +114,7 @@
     try {
       api.storage.local.set({ [STORAGE_KEY]: toWrite });
     } catch (err) {
-      console.warn('Rocky: storage.local.set failed, falling back to in-memory state', err);
+      console.warn('Bandit: storage.local.set failed, falling back to in-memory state', err);
       storageAvailable = false;
     }
   }
@@ -140,7 +140,7 @@
         debounceTimer = setTimeout(flush, DEBOUNCE_MS);
       }
     } catch (err) {
-      console.warn('Rocky: saveState failed, state kept in-memory only', err);
+      console.warn('Bandit: saveState failed, state kept in-memory only', err);
     }
   }
 
@@ -159,7 +159,7 @@
         try { api.storage.onChanged.removeListener(listener); } catch (err) { /* noop */ }
       };
     } catch (err) {
-      console.warn('Rocky: onStateChanged listener failed to attach', err);
+      console.warn('Bandit: onStateChanged listener failed to attach', err);
       return () => {};
     }
   }

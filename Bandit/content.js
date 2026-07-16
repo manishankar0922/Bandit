@@ -4,19 +4,22 @@ if (!window.rockyInjected) {
   
   // Prevent injecting the extension over the native test page
   if (document.getElementById('rocky-root')) {
-    console.log("Rocky is natively present on this page. Aborting extension injection to prevent duplicates.");
+    console.log("Bandit is natively present on this page. Aborting extension injection to prevent duplicates.");
   } else {
   
   // Destroy any old clones left behind if the extension was reloaded without refreshing the page
-  const oldHosts = document.querySelectorAll('#rocky-extension-host');
-  oldHosts.forEach(h => h.remove());
+  const oldHosts = document.querySelectorAll('#bandit-extension-host, #rocky-extension-host');
+  oldHosts.forEach(h => {
+    h.dispatchEvent(new CustomEvent('bandit-cleanup'));
+    h.remove();
+  });
 
   // Firefox uses browser.*, Chrome uses chrome.* — fall back between them.
   const api = globalThis.browser ?? globalThis.chrome;
 
   // 1. Create the host element for the Shadow DOM
   const host = document.createElement('div');
-  host.id = 'rocky-extension-host';
+  host.id = 'bandit-extension-host';
   // High z-index so it floats above everything
   host.style.position = 'fixed';
   host.style.zIndex = '2147483647'; 
@@ -25,7 +28,7 @@ if (!window.rockyInjected) {
   host.style.left = '0';
   host.style.width = '100vw';
   host.style.height = '100vh';
-  document.body.appendChild(host);
+  (document.body || document.documentElement).appendChild(host);
 
   // 2. Attach Shadow DOM — CLOSED so host-page scripts can't reach inside
   // (with 'open', any page script could read host.shadowRoot and lift the
@@ -39,14 +42,14 @@ if (!window.rockyInjected) {
   // 3. Fetch index.html with cache busting, and load saved state in parallel.
   //    Rocky stays hidden until both resolve, so he never flashes as level 1
   //    before hydrating to his real saved level.
-  const htmlPromise = fetch(api.runtime.getURL('index.html'))
-    .then(response => response.text());
+  const htmlPromise = fetch(api.runtime.getURL('index.html')).then(response => response.text());
+  const cssPromise = fetch(api.runtime.getURL('styles.css')).then(response => response.text());
 
   const statePromise = (window.RockyStorage ? window.RockyStorage.loadState() : Promise.resolve(null))
-    .catch(err => { console.warn('Rocky: state load failed, using defaults', err); return null; });
+    .catch(err => { console.warn('Bandit: state load failed, using defaults', err); return null; });
 
-  Promise.all([htmlPromise, statePromise])
-    .then(([html, state]) => {
+  Promise.all([htmlPromise, cssPromise, statePromise])
+    .then(([html, css, state]) => {
       // We only want the content inside the <body> tag, without the <script> tags.
       const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
       let bodyContent = bodyMatch ? bodyMatch[1] : html;
@@ -84,10 +87,10 @@ if (!window.rockyInjected) {
       }
       // (Removed settingsModal pointerEvents auto, as CSS handles it via .show)
 
-      // 5. Inject CSS
-      const style = document.createElement('link');
-      style.rel = 'stylesheet';
-      style.href = api.runtime.getURL('styles.css');
+      // 5. Inject CSS as a <style> tag to bypass strict CSP style-src rules
+      // that block <link> tags on some host pages.
+      const style = document.createElement('style');
+      style.textContent = css;
       shadow.appendChild(style);
 
       // 6. Initialize Rocky logic (reveals itself once hydrated)
@@ -98,13 +101,15 @@ if (!window.rockyInjected) {
       }
     })
     .catch(err => {
-      console.error("Rocky load error:", err);
+      console.error("Bandit load error:", err);
       // Visible fallback so a failure is obvious without opening devtools.
+      // The banner lives inside the shadow DOM, not on document.body,
+      // so host-page scripts can't detect or read it.
       try {
         const banner = document.createElement('div');
-        banner.textContent = 'Rocky failed to load: ' + ((err && err.message) || String(err));
-        banner.style.cssText = 'position:fixed;bottom:8px;right:8px;z-index:2147483647;background:#c0392b;color:#fff;font:12px monospace;padding:8px 12px;border-radius:8px;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,.4);';
-        document.body.appendChild(banner);
+        banner.textContent = 'Bandit failed to load: ' + ((err && err.message) || String(err));
+        banner.style.cssText = 'position:fixed;bottom:8px;right:8px;z-index:2147483647;background:#c0392b;color:#fff;font:12px monospace;padding:8px 12px;border-radius:8px;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,.4);pointer-events:auto;';
+        shadow.appendChild(banner);
         setTimeout(() => banner.remove(), 20000);
       } catch (bannerErr) { /* nothing more we can do */ }
     });

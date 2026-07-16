@@ -15,7 +15,7 @@
 
 Rules:
 - Preserve intent exactly; never add features or tech they didn't state or clearly imply.
-- Never invent specifics. A missing CRITICAL fact becomes a [placeholder] (max 2, nouns only — like [your stack], never [create/use]). Missing minor facts: omit.
+- Never invent specifics. If one CRITICAL fact is missing, insert exactly one [placeholder] from this list ONLY: [your stack], [your database], [your backend], [authentication method], [hosting platform], [design style]. Never bracket verbs, adjectives, or generic words — only these exact noun phrases. Max 1 placeholder. Missing minor facts: omit.
 - Every requirement must be checkable "done / not done". No filler ("user-friendly", "intuitive", "basic functionality") — say what it concretely does.
 - Write direct instructions TO the tool. Never "the user wants" / "the model should".
 

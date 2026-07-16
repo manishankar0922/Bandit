@@ -21,7 +21,7 @@ if (typeof self.RockyStorage === 'undefined' || typeof self.RockyProviders === '
     try {
       importScripts('storage.js', 'ai/providers.js');
     } catch (err) {
-      console.warn('Rocky: importScripts failed', err && err.message);
+      console.warn('Bandit: importScripts failed', err && err.message);
     }
   }
 }
@@ -52,6 +52,7 @@ async function callProviderOnce(providerId, req) {
       e.transient = res.status === 429 || res.status >= 500; // rate-limit/server hiccups retry once too
       throw e;
     }
+    if (!self.RockyProviders) throw new Error('AI providers not loaded — extension may need reinstalling');
     return self.RockyProviders.parseResponse(providerId, data);
   } finally {
     cancel();
@@ -59,6 +60,7 @@ async function callProviderOnce(providerId, req) {
 }
 
 async function callProvider(providerId, apiKey, model, systemPrompt, userText) {
+  if (!self.RockyProviders) throw new Error('AI providers not loaded — extension may need reinstalling');
   const req = self.RockyProviders.buildRequest(providerId, { apiKey, model, systemPrompt, userText });
   try {
     return await callProviderOnce(providerId, req);
@@ -72,7 +74,13 @@ async function callProvider(providerId, apiKey, model, systemPrompt, userText) {
 }
 
 async function getAISettings() {
-  const state = await self.RockyStorage.loadState();
+  if (!self.RockyStorage) throw new Error('storage not loaded — extension may need reinstalling');
+  let state;
+  try {
+    state = await self.RockyStorage.loadState();
+  } catch (err) {
+    throw new Error('failed to read settings from storage');
+  }
   return {
     provider: state.provider || 'builtin',
     apiKey: state.apiKey || '',
@@ -104,7 +112,7 @@ async function handleAICall(message) {
   }
   const candidates = buildCandidates(settings);
   if (!candidates.length) {
-    throw new Error("No API key set — add one in Rocky's settings ⚙️");
+    throw new Error("No API key set — add one in Bandit's settings ⚙️");
   }
 
   let lastErr = null;
@@ -117,12 +125,12 @@ async function handleAICall(message) {
       const text = await callProvider(provider, apiKey, model, message.systemPrompt, message.userText);
       if (message.debug) {
         // Debug-only: provider name + latency. Never the prompt text or the key.
-        console.log('[Rocky background]', provider, (Date.now() - startedAt) + 'ms');
+        console.log('[Bandit background]', provider, (Date.now() - startedAt) + 'ms');
       }
       return { ok: true, text, provider };
     } catch (err) {
       lastErr = err;
-      if (message.debug) console.log('[Rocky background]', provider, 'failed, trying next —', err && err.message);
+      if (message.debug) console.log('[Bandit background]', provider, 'failed, trying next —', err && err.message);
     }
   }
   throw lastErr || new Error('all providers failed');

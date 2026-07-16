@@ -80,27 +80,36 @@
   function parseResponse(providerId, data) {
     const cfg = PROVIDERS[providerId];
     if (!cfg) throw new Error('Unknown AI provider: ' + providerId);
+    if (!data || typeof data !== 'object') throw new Error(providerId + ' returned invalid response data');
 
-    if (cfg.format === 'anthropic') {
-      const text = (data && data.content ? data.content : [])
-        .map((block) => block.text || '').join('').trim();
-      if (!text) throw new Error((data && data.error && data.error.message) || 'Empty response from Anthropic');
-      return text;
-    }
+    try {
+      if (cfg.format === 'anthropic') {
+        const text = (Array.isArray(data.content) ? data.content : [])
+          .map((block) => (block && block.text) || '').join('').trim();
+        if (!text) throw new Error((data.error && data.error.message) || 'Empty response from Anthropic');
+        return text;
+      }
 
-    if (cfg.format === 'openai') {
-      const text = data && data.choices && data.choices[0] && data.choices[0].message
-        ? (data.choices[0].message.content || '').trim() : '';
-      if (!text) throw new Error((data && data.error && data.error.message) || 'Empty response from provider');
-      return text;
-    }
+      if (cfg.format === 'openai') {
+        const choices = Array.isArray(data.choices) ? data.choices : [];
+        const text = choices[0] && choices[0].message
+          ? (choices[0].message.content || '').trim() : '';
+        if (!text) throw new Error((data.error && data.error.message) || 'Empty response from provider');
+        return text;
+      }
 
-    if (cfg.format === 'gemini') {
-      const parts = data && data.candidates && data.candidates[0] && data.candidates[0].content
-        ? data.candidates[0].content.parts || [] : [];
-      const text = parts.map((p) => p.text || '').join('').trim();
-      if (!text) throw new Error((data && data.error && data.error.message) || 'Empty response from Gemini');
-      return text;
+      if (cfg.format === 'gemini') {
+        const candidates = Array.isArray(data.candidates) ? data.candidates : [];
+        const parts = candidates[0] && candidates[0].content
+          ? (Array.isArray(candidates[0].content.parts) ? candidates[0].content.parts : []) : [];
+        const text = parts.map((p) => (p && p.text) || '').join('').trim();
+        if (!text) throw new Error((data.error && data.error.message) || 'Empty response from Gemini');
+        return text;
+      }
+    } catch (parseErr) {
+      // Re-throw if it's already one of our errors; wrap anything unexpected
+      if (parseErr instanceof Error) throw parseErr;
+      throw new Error(providerId + ' response parsing failed: ' + String(parseErr));
     }
 
     throw new Error('Unknown provider format: ' + cfg.format);

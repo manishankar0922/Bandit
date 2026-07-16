@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Rocky Desktop Pet",
-  "version": "1.0",
-  "description": "Your AI vibe-coding companion on every page.",
+  "name": "Bandit — AI Prompt Companion",
+  "version": "1.1",
+  "description": "A pixel-art raccoon that lives on every page — enhances your prompts, summarizes AI chats, and levels up as you use it.",
   "browser_specific_settings": {
     "gecko": {
-      "id": "rocky@vibecoding.pet",
+      "id": "bandit@vibecoding.pet",
       "strict_min_version": "142.0",
       "data_collection_permissions": {
         "required": ["none"]

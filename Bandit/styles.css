@@ -48,7 +48,17 @@
   .send:hover{border-color:#3a4656}
 
   /* ---------- Rocky ---------- */
-  #rocky-root{position:fixed;z-index:99999;right:32px;bottom:110px;user-select:none;-webkit-user-select:none;touch-action:none}
+  #rocky-root{
+    all:initial;
+    font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    color:var(--text);
+    font-family:var(--font-mono);
+    font-size:14px;
+    line-height:1.5;
+    position:fixed;z-index:2147483647;right:32px;bottom:110px;
+    user-select:none;-webkit-user-select:none;touch-action:none;
+    will-change: transform, left, top;
+  }
   .pet-wrap{position:relative;cursor:grab;display:flex;flex-direction:column;align-items:center}
   .pet-wrap.dragging{cursor:grabbing}
   .pet-wrap.dragging .pet{transform-origin:top center;animation:dangle 1.2s ease-in-out infinite}
@@ -79,7 +89,7 @@
   .pet-menu button:hover{border-color:var(--amber);color:var(--amber);background:#242c37}
 
   /* pet stage holds BOTH sprites; only one visible at a time */
-  .pet{width:118px;height:118px;position:relative;filter:drop-shadow(0 8px 12px rgba(0,0,0,.5));zoom:var(--pet-scale, 1)}
+  .pet{width:118px;height:118px;position:relative;filter:drop-shadow(0 8px 12px rgba(0,0,0,.5));zoom:var(--pet-scale, 1);will-change:transform}
   .sprite{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center}
   .sprite svg{image-rendering:pixelated;shape-rendering:crispEdges;overflow:visible}
   #frontSprite svg, #dangleSprite svg {width:112px;height:112px}

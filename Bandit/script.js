@@ -2,10 +2,21 @@ function initRocky(savedState) {
 const doc = (typeof window.rockyShadowRoot !== 'undefined') ? window.rockyShadowRoot : document;
 const docBody = (typeof window.rockyShadowRoot !== 'undefined') ? window.rockyShadowRoot : document.body;
 
+const abortController = typeof AbortController !== 'undefined' ? new AbortController() : { signal: undefined, abort: () => {} };
+const { signal } = abortController;
+const cleanupTasks = [];
+const shadowHost = (typeof window.rockyShadowRoot !== 'undefined') ? window.rockyShadowRoot.host : null;
+if (shadowHost) {
+  shadowHost.addEventListener('bandit-cleanup', () => {
+    abortController.abort();
+    cleanupTasks.forEach(fn => fn());
+  });
+}
+
 // Fields missing from an older saved version fall back to these.
 const rockyDefaults = (window.RockyStorage && window.RockyStorage.DEFAULTS) || {
-  xp: 0, level: 1, petName: 'Rocky', position: { x: null, y: null }, onboarded: false, settings: { size: 1 },
-  lastFedAt: 0, provider: 'builtin', apiKey: '', model: ''
+  xp: 0, level: 1, petName: 'Bandit', position: { x: null, y: null }, onboarded: false, settings: { size: 1 },
+  lastFedAt: 0, provider: 'builtin', apiKey: '', model: '', apiKeys: {}, enhanceStyle: 'structured', askPlaceholders: true, history: []
 };
 const hydrated = savedState || rockyDefaults;
 
@@ -13,7 +24,7 @@ function persist(partial, opts) {
   try {
     if (window.RockyStorage) window.RockyStorage.saveState(partial, opts);
   } catch (err) {
-    console.warn('Rocky: failed to persist state', err);
+    console.warn('Bandit: failed to persist state', err);
   }
 }
 
@@ -26,13 +37,13 @@ function testAIKey(testSettings) {
   return new Promise((resolve, reject) => {
     try {
       if (!rockyApi || !rockyApi.runtime || !rockyApi.runtime.sendMessage) {
-        reject(new Error('extension messaging unavailable here'));
+        reject(new Error('extension messaging unavailable here (demo page only)'));
         return;
       }
       rockyApi.runtime.sendMessage({ type: 'ROCKY_AI_TEST_KEY', testSettings }, (response) => {
         const lastErr = rockyApi.runtime.lastError;
         if (lastErr) { reject(new Error(lastErr.message)); return; }
-        if (!response) { reject(new Error("no response from Rocky's background worker")); return; }
+        if (!response) { reject(new Error("no response from Bandit's background worker")); return; }
         if (!response.ok) { reject(new Error(response.error || 'test failed')); return; }
         resolve(response);
       });
@@ -67,7 +78,7 @@ function friendlyError(err) {
   const msg = (err && err.message) ? err.message : String(err || 'unknown error');
   if (/slow down/i.test(msg)) return 'one thing at a time — try again in a sec';
   if (/No API key/i.test(msg)) return 'no API key set';
-  if (/built-in.*unavailable|on-device AI is unavailable/i.test(msg)) return "on-device AI isn't available on this device";
+  if (/built-in.*unavailable|on-device AI is unavailable/i.test(msg)) return "on-device AI isn't available — set up an API key in settings";
   if (/No cloud provider|pick a cloud provider|pick one in settings/i.test(msg)) return 'no provider selected';
   if (/messaging unavailable/i.test(msg)) return "this only works in the real extension, not the demo page";
   if (/timed out/i.test(msg)) return 'took too long, try again';
@@ -89,7 +100,9 @@ function legacyCopy(text) {
       ta.value = text;
       ta.style.position = 'fixed';
       ta.style.opacity = '0';
-      docBody.appendChild(ta);
+      // MUST append to the real document body, not the shadow DOM.
+      // document.execCommand('copy') silently fails if the target is inside a shadow root.
+      document.body.appendChild(ta);
       ta.focus(); ta.select();
       const ok = document.execCommand('copy');
       ta.remove();
@@ -140,10 +153,26 @@ function scrapeGemini() {
   return out.length ? out : null;
 }
 
+function scrapeChatGPT() {
+  // ChatGPT wraps each turn in [data-message-author-role] attributes.
+  const nodes = Array.from(document.querySelectorAll('[data-message-author-role]'));
+  if (!nodes.length) return null;
+
+  const out = [];
+  for (const el of nodes) {
+    const role = el.getAttribute('data-message-author-role') === 'user' ? 'user' : 'assistant';
+    const text = (el.innerText || el.textContent || '').trim();
+    if (text) out.push({ role, text });
+  }
+  return out.length ? out : null;
+}
+
 function scrapeGenericFallback() {
   const main = document.querySelector('main') || document.body;
   const text = (main.innerText || main.textContent || '').trim();
-  return text ? text.slice(0, 8000) : '';
+  // We want the MOST RECENT context, which is at the bottom of the page/chat.
+  // slice(-8000) grabs the end, whereas slice(0, 8000) grabbed the oldest text.
+  return text ? text.slice(-8000) : '';
 }
 
 function scrapeConversation() {
@@ -152,18 +181,22 @@ function scrapeConversation() {
     let turns = null;
     if (host.includes('claude.ai')) turns = scrapeClaudeAI();
     else if (host.includes('gemini.google.com')) turns = scrapeGemini();
+    else if (host.includes('chatgpt.com') || host.includes('chat.openai.com')) turns = scrapeChatGPT();
 
     if (turns && turns.length) {
-      return turns.map(t => `${t.role.toUpperCase()}: ${t.text}`).join('\n\n').slice(0, 8000);
+      // Join all turns, then grab the LAST 8000 characters. 
+      // This ensures we feed the AI the most recent context, not the beginning of a massive chat.
+      const joined = turns.map(t => `${t.role.toUpperCase()}: ${t.text}`).join('\n\n');
+      return joined.slice(-8000);
     }
   } catch (err) {
-    console.warn('Rocky: site-specific scrape failed, falling back to generic', err);
+    console.warn('Bandit: site-specific scrape failed, falling back to generic', err);
   }
 
   try {
     return scrapeGenericFallback();
   } catch (err) {
-    console.warn('Rocky: generic scrape failed', err);
+    console.warn('Bandit: generic scrape failed', err);
     return '';
   }
 }
@@ -239,6 +272,7 @@ const F_SCARF      =[[3,19,20,2,'#d64545'],[4,21,3,1,'#b23737'],[4,22,2,2,'#d645
 const F_CROWN      =[[10,3,1,3,'#f5c542'],[13,2,1,4,'#f5c542'],[16,3,1,3,'#f5c542'],[9,5,9,1,'#e0a92e'],[13,1,1,1,'#fff1b8']];
 
 const frontSvg=doc.getElementById('frontSvg');
+if(!frontSvg){console.error('Bandit: #frontSvg missing — aborting init');return;}
 const fTailG=group('tail',frontSvg);
 FRONT_TAIL.forEach(([x,y,w,h,c])=>rect(x,y,w,h,C[c],fTailG));
 const fBodyG=group('body-group',frontSvg);
@@ -251,11 +285,11 @@ FRONT_BODY.forEach((row,y)=>{
 });
 const fEyesG=document.createElementNS(NS,'g');fBodyG.appendChild(fEyesG);
 const fAccG =document.createElementNS(NS,'g');fBodyG.appendChild(fAccG);/* eye/accessory control */
-function overlay(g,s){g.innerHTML='';s.forEach(([x,y,w,h,c])=>rect(x,y,w,h,C[c]||c,g));}
+function overlay(g,s){if(!g)return;g.innerHTML='';s.forEach(([x,y,w,h,c])=>rect(x,y,w,h,C[c]||c,g));}
 function eyesOpen(){overlay(fEyesG,F_EYES_OPEN);}
 function eyesClosed(){overlay(fEyesG,F_EYES_CLOSED);}
 function eyesHappy(){overlay(fEyesG,F_EYES_HAPPY);}
-// Accessories stack up as Rocky levels: 2=shades, 3=+scarf, 4=+crown.
+// Accessories stack up as Bandit levels: 2=shades, 3=+scarf, 4=+crown.
 function applyAccessories(lvl){
   overlay(fAccG, [
     ...(lvl>=2?F_SHADES:[]),
@@ -280,6 +314,8 @@ const xpLabel=doc.getElementById('xpLabel');
 const toast=doc.getElementById('toast');
 const messages=doc.getElementById('messages');
 
+if(!wrap||!root||!pet||!bubble){console.error('Bandit: critical DOM elements missing — aborting init');return;}
+
 let state='idle';
 let xp=hydrated.xp, level=hydrated.level;
 let petName=hydrated.petName;
@@ -287,7 +323,7 @@ let lastFedAt=hydrated.lastFedAt||0;
 let aiSettings={ provider: hydrated.provider||'builtin', apiKey: hydrated.apiKey||'', model: hydrated.model||'', apiKeys: hydrated.apiKeys||{} };
 let enhanceStyle=hydrated.enhanceStyle||'structured';
 let askPlaceholders=hydrated.askPlaceholders!==false;
-let lastEnhance=null; // { input, original } — lets the Undo menu restore pre-enhance text
+let lastEnhance=null; // { inputRef, original } — lets the Undo menu restore pre-enhance text
 // Named copyHistory (not `history`) to avoid shadowing window.history.
 let copyHistory=Array.isArray(hydrated.history)?hydrated.history:[];
 
@@ -296,13 +332,13 @@ function recordHistory(type, text){
   persist({ history: copyHistory });
 }
 const FEED_COOLDOWN_MS=60000;
-const LEVELS=[0,20,50,100,200]; // level 1..4 thresholds; 200 caps out at LVL 4
+const LEVELS=[0,20,50,100]; // level 1..4 thresholds; Level 4 is max, so no 200 cap.
 let lastActivity=Date.now();
 let alertShown=false;
 let runAnim=null;
 let isHovering=false;
 wrap.addEventListener('pointerenter',()=>isHovering=true);
-window.addEventListener('pointerout',()=>isHovering=false);
+window.addEventListener('pointerout',()=>isHovering=false, { signal });
 
 function setState(s){
   wrap.classList.remove('alert','working','happy','sleeping','levelup','running','scooting','hopping');
@@ -313,11 +349,13 @@ function setState(s){
 }
 
 function say(html,ms=2600){
+  if(!bubble)return;
   bubble.innerHTML=html;bubble.classList.add('show');
   clearTimeout(say._t);
   if(ms>0)say._t=setTimeout(()=>bubble.classList.remove('show'),ms);
 }
 function showToast(msg){
+  if(!toast)return;
   toast.textContent=msg;toast.classList.add('show');
   clearTimeout(showToast._t);
   showToast._t=setTimeout(()=>toast.classList.remove('show'),2200);
@@ -339,16 +377,20 @@ function stopThinking(){
 }
 
 /* blinking (front sprite) */
+let blinkTimer;
 (function scheduleBlink(){
-  setTimeout(()=>{
+  blinkTimer = setTimeout(()=>{
     if(state!=='sleeping'&&state!=='running'&&level<2){
-      eyesOpen();setTimeout(()=>{if(state!=='sleeping')eyesOpen();},140);
+      eyesClosed();setTimeout(()=>{if(state!=='sleeping')eyesOpen();},140);
     }
     scheduleBlink();
   },2200+Math.random()*2600);
 })();
+cleanupTasks.push(() => clearTimeout(blinkTimer));
 
 let isFetching = false;
+let fetchTimer = null;
+cleanupTasks.push(() => clearTimeout(fetchTimer));
 
 function pokeActivity(){
   lastActivity=Date.now();
@@ -364,9 +406,10 @@ function pokeActivity(){
   }
   if(state!=='working' && state!=='startled' && !isFetching) setState('idle');
 }
-setInterval(()=>{
+const sleepInterval = setInterval(()=>{
   if(state==='idle'&&!drag&&Date.now()-lastActivity>20000)setState('sleeping');
 },1000);
+cleanupTasks.push(() => clearInterval(sleepInterval));
 
 /* =========================================================
    RUNNING — swaps to the 4-leg side sprite mid-dash
@@ -412,9 +455,10 @@ function startRun(){
   };
   runAnim=requestAnimationFrame(step);
 }
-setInterval(()=>{
+const runInterval = setInterval(()=>{
   if(state==='idle' && !isHovering && Date.now()-lastActivity>5000 && Math.random()<.4)startRun();
 },8000);
+cleanupTasks.push(() => clearInterval(runInterval));
 function stopRun(){
   if(runAnim)cancelAnimationFrame(runAnim);
   runAnim=null;
@@ -431,12 +475,15 @@ const idleLines=[
   'I summarize chats too, y\'know 📋',
   '*sniffs around for bugs* 🐛',
   'ship it. ship it now 🚀',
+  'Ctrl+Shift+E → instant enhance ⚡',
+  '*rummages through your code* 🦝',
 ];
-setInterval(()=>{
+const chatterInterval = setInterval(()=>{
   if(state==='idle'&&Date.now()-lastActivity>6000&&Date.now()-lastActivity<18000){
     say(idleLines[Math.floor(Math.random()*idleLines.length)],2400);
   }
 },11000);
+cleanupTasks.push(() => clearInterval(chatterInterval));
 
 /* typing → alert */
 if(input) input.addEventListener('input',()=>{
@@ -445,17 +492,26 @@ if(input) input.addEventListener('input',()=>{
   if(val.length>7&&(state==='idle'||state==='running')&&!alertShown){
     alertShown=true;stopRun();
     setState('alert');
-    box.classList.add('rocky-glow');
-    say('Ooh! I can clean that up.<br><b>Click me!</b> 🦝✨',4000);
+    if(box)box.classList.add('rocky-glow');
+    say('Ooh! I can clean that up.<br><b>Click me</b> or <b>Ctrl+Shift+E</b> 🦝✨',4000);
     setTimeout(()=>{if(state==='alert')setState('idle');},4200);
   }
-  if(val.length===0){alertShown=false;box.classList.remove('rocky-glow');}
+  if(val.length===0){alertShown=false;if(box)box.classList.remove('rocky-glow');}
 });
 
 /* enhance flow */
+function getDeepActiveElement() {
+  let el = document.activeElement;
+  while (el && el.shadowRoot && el.shadowRoot.activeElement) {
+    el = el.shadowRoot.activeElement;
+  }
+  return el;
+}
+
 function getHostInput() {
-  const active = document.activeElement;
+  const active = getDeepActiveElement();
   if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT' || active.isContentEditable)) {
+    if (active.disabled || active.readOnly) return null; // Cannot inject into disabled/readonly
     const r = active.getBoundingClientRect();
     // A focused-but-invisible element is worse than falling through to search.
     if (r.width > 0 && r.height > 0) return active;
@@ -470,6 +526,7 @@ function getHostInput() {
   );
   let best = null, bestArea = 0;
   for (const el of candidates) {
+    if (el.disabled || el.readOnly) continue;
     if (el.offsetParent === null) continue; // display:none / detached
     const r = el.getBoundingClientRect();
     const area = r.width * r.height;
@@ -484,14 +541,34 @@ function getHostInput() {
 function setPromptText(hostInput, text) {
   hostInput.focus();
   if (hostInput.tagName === 'TEXTAREA' || hostInput.tagName === 'INPUT') {
-    hostInput.value = text;
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+    if (hostInput.tagName === 'INPUT' && nativeInputValueSetter) {
+      nativeInputValueSetter.call(hostInput, text);
+    } else if (hostInput.tagName === 'TEXTAREA' && nativeTextAreaValueSetter) {
+      nativeTextAreaValueSetter.call(hostInput, text);
+    } else {
+      hostInput.value = text;
+    }
     hostInput.dispatchEvent(new Event('input', { bubbles: true }));
     hostInput.dispatchEvent(new Event('change', { bubbles: true }));
+    hostInput.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: ' ' }));
   } else {
     // contenteditable (Claude, Gemini, etc) — select everything, then replace
     const selection = window.getSelection();
     if (selection) selection.selectAllChildren(hostInput);
-    document.execCommand('insertText', false, text);
+    try {
+      if (!document.execCommand('insertText', false, text)) {
+        throw new Error('execCommand failed');
+      }
+    } catch (err) {
+      // Fallback if execCommand is blocked (strict CSP, deprecated, or framework-blocked).
+      // Riskier for React internals, but guarantees the text gets inserted.
+      hostInput.textContent = text;
+      hostInput.dispatchEvent(new Event('input', { bubbles: true }));
+      hostInput.dispatchEvent(new Event('change', { bubbles: true }));
+      hostInput.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: ' ' }));
+    }
   }
 }
 
@@ -501,16 +578,37 @@ function setPromptText(hostInput, text) {
    (with clickable suggestions) before inserting the final text.
    ========================================================= */
 const PLACEHOLDER_SUGGESTIONS = [
-  { re: /stack|framework|frontend|tech/i, opts: ['React + Node.js', 'Next.js', 'Vue + Express', 'Plain HTML/CSS/JS'] },
-  { re: /database|\bdb\b|storage/i,       opts: ['PostgreSQL', 'MongoDB', 'SQLite', 'Supabase'] },
-  { re: /backend|server|api/i,            opts: ['Node.js + Express', 'Supabase', 'Firebase', 'Python FastAPI'] },
-  { re: /auth/i,                          opts: ['Email + password', 'Google OAuth', 'Magic link'] },
-  { re: /config/i,                        opts: ['.env file', 'JSON config file'] },
-  { re: /color|brand|theme|design|style/i, opts: ['Minimal light', 'Dark mode', 'Colorful / playful'] },
+  // Each entry: regex tested against the FULL placeholder text, options shown.
+  // Patterns use word boundaries and multi-word anchors to avoid false matches
+  // (e.g. "storage" alone shouldn't suggest databases — "data storage" should).
+  { re: /\b(tech\s*stack|framework|your\s+stack|front\s*end\s+stack)\b/i,
+    opts: ['React + Node.js', 'Next.js', 'Vue + Express', 'Plain HTML/CSS/JS'] },
+  { re: /\b(database|data\s*base|db\s+engine|data\s+storage|your\s+db)\b/i,
+    opts: ['PostgreSQL', 'MongoDB', 'SQLite', 'Supabase'] },
+  { re: /\b(backend|back\s*end|server\s*(framework|stack)?|api\s+framework)\b/i,
+    opts: ['Node.js + Express', 'Supabase', 'Firebase', 'Python FastAPI'] },
+  { re: /\b(auth(entication)?|login\s+method|sign[\s-]*in)\b/i,
+    opts: ['Email + password', 'Google OAuth', 'Magic link'] },
+  { re: /\b(config(uration)?(\s+method)?|env(ironment)?\s*(setup|file)?)\b/i,
+    opts: ['.env file', 'JSON config file'] },
+  { re: /\b(color\s*(scheme|palette)?|brand(ing)?|theme|design\s+style|ui\s+style)\b/i,
+    opts: ['Minimal light', 'Dark mode', 'Colorful / playful'] },
+  { re: /\b(host(ing)?|deploy(ment)?|platform)\b/i,
+    opts: ['Vercel', 'Netlify', 'AWS', 'Railway'] },
+  { re: /\b(test(ing)?(\s+framework)?|test\s+runner)\b/i,
+    opts: ['Jest', 'Vitest', 'Playwright', 'None for now'] },
+  { re: /\b(language|programming\s+lang(uage)?)\b/i,
+    opts: ['TypeScript', 'JavaScript', 'Python', 'Go'] },
+  { re: /\b(css\s*(framework|library)?|styling)\b/i,
+    opts: ['Tailwind CSS', 'Vanilla CSS', 'CSS Modules', 'Styled Components'] },
+  { re: /\b(state\s*(management|library))\b/i,
+    opts: ['React Context', 'Zustand', 'Redux', 'None'] },
+  { re: /\b(package\s+manager)\b/i,
+    opts: ['npm', 'pnpm', 'yarn', 'bun'] },
 ];
 function suggestionsFor(ph) {
   for (const s of PLACEHOLDER_SUGGESTIONS) if (s.re.test(ph)) return s.opts;
-  return [];
+  return []; // No match = no suggestions. User types their own — safer than guessing wrong.
 }
 function extractPlaceholders(text) {
   const found = new Set();
@@ -546,13 +644,27 @@ function askPlaceholderValues(text, placeholders, done) {
   let i = 0;
   let out = text;
 
-  // Dismissing at any point delivers whatever was answered so far.
-  const { modal, close: finish } = openRockyModal(() => done(out));
+  let cancelled = true;
+
+  // Dismissing at any point delivers null (aborted), unless finished completely.
+  const { modal, close: finish } = openRockyModal(() => {
+    if (cancelled) done(null);
+    else done(out);
+  });
 
   const answer = (val) => {
+    if (out._answering) return; // prevent rapid double-clicks from skipping questions
+    out._answering = true;
     if (val) out = out.split('[' + placeholders[i] + ']').join(val);
     i++;
-    if (i < placeholders.length) renderQuestion(); else finish();
+    if (i < placeholders.length) {
+      out._answering = false;
+      renderQuestion();
+    } else {
+      cancelled = false;
+      delete out._answering;
+      finish();
+    }
   };
 
   const renderQuestion = () => {
@@ -587,7 +699,11 @@ function askPlaceholderValues(text, placeholders, done) {
     input.placeholder = 'or type your own…';
     input.addEventListener('keydown', (e) => {
       e.stopPropagation(); // keep keystrokes away from host-page shortcuts
-      if (e.key === 'Enter' && input.value.trim()) answer(input.value.trim());
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = input.value.trim();
+        answer(val ? val : null);
+      }
       if (e.key === 'Escape') finish();
     });
     modal.appendChild(input);
@@ -598,7 +714,10 @@ function askPlaceholderValues(text, placeholders, done) {
     ok.type = 'button';
     ok.textContent = 'Use this';
     ok.style.flex = '1';
-    ok.addEventListener('click', () => { if (input.value.trim()) answer(input.value.trim()); });
+    ok.addEventListener('click', () => { 
+      const val = input.value.trim();
+      answer(val ? val : null);
+    });
     const skip = document.createElement('button');
     skip.type = 'button';
     skip.className = 'secondary';
@@ -655,14 +774,14 @@ function enhancePrompt() {
     onProgress: (frac) => { stopThinking(); say(`downloading on-device AI… ${Math.round(frac*100)}% 📥`, 0); },
   }).then(result => {
     stopThinking();
-    lastEnhance = { input: hostInput, original: val };
+    lastEnhance = { inputRef: typeof WeakRef !== 'undefined' ? new WeakRef(hostInput) : hostInput, original: val };
 
     const insertFinal = (text) => {
       setPromptText(hostInput, text.trim());
       recordHistory('enhance', text.trim());
       gainXP(10);
       setState('happy');
-      say('trash → treasure! <span class="xp-pop">+10 XP</span> ✨<br><span style="opacity:.7">changed your mind? menu → ↩️ Undo</span>', 3600);
+      say('trash → treasure! <span class="xp-pop">+10 XP</span> ✨<br><span style="opacity:.7">menu → ↩️ Undo to revert</span>', 3600);
       setTimeout(()=>{if(state==='happy')setState('idle');}, 1150);
     };
 
@@ -670,37 +789,51 @@ function enhancePrompt() {
     if (askPlaceholders && placeholders.length) {
       setState('alert');
       say('almost! fill in a couple of blanks for me ✍️', 3000);
-      askPlaceholderValues(result, placeholders, insertFinal);
+      askPlaceholderValues(result, placeholders, (finalText) => {
+        // If the user cancelled/dismissed, abort the injection and restore state.
+        if (finalText === null) {
+          setState('idle');
+          return;
+        }
+        try { insertFinal(finalText); } catch(err) {
+          console.warn('Bandit: insertFinal threw after placeholder Q&A', err && err.message);
+          setState('idle');
+        }
+      });
     } else {
       insertFinal(result);
     }
   }).catch(err => {
     stopThinking();
-    console.warn('Rocky: enhance failed', err && err.message);
+    console.warn('Bandit: enhance failed', err && err.message);
     setState('idle');
     say(`couldn't enhance that — ${escapeHTML(friendlyError(err))}<br><b>Set up key in settings 🔧</b>`, 4200);
   });
 }
 
 function updateXPDisplay(){
-  const base=LEVELS[level-1],next=LEVELS[level]??xp;
-  const pct=Math.min(100,((xp-base)/(next-base))*100);
-  xpFill.style.width=pct+'%';
-  xpLabel.innerHTML=`${escapeHTML(petName.toUpperCase())} · <b>LVL ${level}</b> · ${xp}/${LEVELS[level]??'MAX'} XP`;
+  const base=LEVELS[level-1]||0,next=LEVELS[level]??xp;
+  const range=next-base; const pct=range>0?Math.min(100,((xp-base)/range)*100):100;
+  if(xpFill)xpFill.style.width=pct+'%';
+  const name=(petName||'Bandit').toUpperCase();
+  if(xpLabel)xpLabel.innerHTML=`${escapeHTML(name)} · <b>LVL ${level}</b> · ${xp}/${LEVELS[level]??'MAX'} XP`;
 }
 
 function gainXP(n, silent = false){
   xp+=n;
-  const nextAt=LEVELS[level]??Infinity;
-  if(xp>=nextAt&&level<LEVELS.length-1){
+  let leveledUp = false;
+  while(level < LEVELS.length - 1 && xp >= LEVELS[level]) {
     level++;
+    leveledUp = true;
+  }
+  if (leveledUp) {
     wrap.classList.add('levelup');
     setTimeout(()=>wrap.classList.remove('levelup'),1500);
     applyAccessories(level);
     const LEVEL_TOASTS = {
-      2: '🦝 LEVEL 2 — Rocky found sunglasses in the trash',
-      3: '🧣 LEVEL 3 — Rocky found a cozy scarf!',
-      4: '👑 LEVEL 4 — ALL HAIL THE TRASH KING',
+      2: `🦝 LEVEL 2 — ${petName} found sunglasses in the trash`,
+      3: `🧣 LEVEL 3 — ${petName} found a cozy scarf!`,
+      4: `👑 LEVEL 4 — ALL HAIL THE TRASH KING`,
     };
     showToast(LEVEL_TOASTS[level] || `🦝 LEVEL ${level}!`);
   }
@@ -742,6 +875,7 @@ function clampToViewport(left, top){
 /* click vs drag */
 let drag=null;
 let spinTimer=null;
+cleanupTasks.push(() => clearTimeout(spinTimer));
 let lastTap=0;
 
 wrap.addEventListener('contextmenu', e=>{
@@ -752,7 +886,7 @@ window.addEventListener('pointerdown', e=>{
   if(!getClosest(e, '.pet-menu') && !getClosest(e, '#petWrap')){
     wrap.classList.remove('show-menu');
   }
-});
+}, { signal });
 
 wrap.addEventListener('pointerdown',e=>{
   if(getClosest(e, '.pet-menu'))return;
@@ -806,7 +940,7 @@ function spawnHeart() {
   docBody.appendChild(h);
   setTimeout(()=>h.remove(), 1200);
 }
-window.addEventListener('pointerout', () => petDistance = 0);
+window.addEventListener('pointerout', () => petDistance = 0, { signal });
 
 // Rocky's pupils drift toward the cursor — tiny effect, big "he's alive" feel.
 // Throttled to ~10Hz; skipped while sleeping (eyes closed) or above level 1
@@ -871,7 +1005,7 @@ window.addEventListener('pointermove',e=>{
     root.style.bottom='auto';
     wrap.classList.remove('show-menu');
   }
-});
+}, { signal });
 window.addEventListener('pointerup',e=>{
   if(drag && e.pointerId !== drag.pointerId) return; // a different pointer lifted, not ours
   clearTimeout(spinTimer);
@@ -897,7 +1031,7 @@ window.addEventListener('pointerup',e=>{
       wrap.classList.remove('show-menu');
     }
   }
-});
+}, { signal });
 // Mobile/trackpad gestures can be cancelled by the browser mid-drag (palm
 // rejection, OS gesture takeover, multi-touch). Treat it exactly like a
 // pointerup for cleanup purposes — but never as a click, so it can't enhance.
@@ -913,7 +1047,7 @@ window.addEventListener('pointercancel', e=>{
   if(wasDrag){
     persist({ position: { x: root.offsetLeft, y: root.offsetTop } }, { immediate: true });
   }
-});
+}, { signal });
 
 // A shrinking viewport (resize, devtools panel, orientation flip) must never
 // leave Rocky stranded past the new edge. Never fights an active drag.
@@ -928,8 +1062,8 @@ function reclampToViewport(){
     persist({ position: { x: clamped.x, y: clamped.y } });
   }
 }
-window.addEventListener('resize', reclampToViewport);
-window.addEventListener('orientationchange', reclampToViewport);
+window.addEventListener('resize', reclampToViewport, { signal });
+window.addEventListener('orientationchange', reclampToViewport, { signal });
 
 const menuEnhance = doc.getElementById('menuEnhance');
 if(menuEnhance) menuEnhance.addEventListener('click',()=>{
@@ -941,16 +1075,17 @@ const menuUndo = doc.getElementById('menuUndo');
 if(menuUndo) menuUndo.addEventListener('click',()=>{
   wrap.classList.remove('show-menu');
   pokeActivity();
-  if(!lastEnhance || !document.contains(lastEnhance.input)){
+  const inputEl = lastEnhance ? (lastEnhance.inputRef && typeof lastEnhance.inputRef.deref === 'function' ? lastEnhance.inputRef.deref() : lastEnhance.inputRef) : null;
+  if(!inputEl || !inputEl.isConnected){
     say('nothing to undo 🤷', 2400);
     return;
   }
   try {
-    setPromptText(lastEnhance.input, lastEnhance.original);
+    setPromptText(inputEl, lastEnhance.original);
     lastEnhance = null;
     say('back to your original ↩️', 2400);
   } catch (err) {
-    console.warn('Rocky: undo failed', err && err.message);
+    console.warn('Bandit: undo failed', err && err.message);
     say("couldn't undo that one 😖", 2400);
   }
 });
@@ -978,6 +1113,21 @@ function showHistoryModal(){
     empty.style.cssText='font-size:12px;color:#8a95a5;line-height:1.6';
     empty.textContent='Nothing here yet — enhance a prompt or summarize a chat, and it lands here for re-copying.';
     modal.appendChild(empty);
+  }
+
+  if(copyHistory.length){
+    const clearBtn=document.createElement('button');
+    clearBtn.type='button';
+    clearBtn.className='secondary';
+    clearBtn.style.cssText='font-size:11px;opacity:.7;margin-top:4px';
+    clearBtn.textContent='🗑 Clear history';
+    clearBtn.addEventListener('click',()=>{
+      copyHistory=[];
+      persist({ history: [] });
+      close();
+      showToast('history cleared');
+    });
+    modal.appendChild(clearBtn);
   }
 
   copyHistory.forEach(item=>{
@@ -1024,7 +1174,7 @@ function runSummarize(){
   try {
     transcript = scrapeConversation();
   } catch (err) {
-    console.warn('Rocky: scrapeConversation threw', err);
+    console.warn('Bandit: scrapeConversation threw', err);
   }
 
   if(!transcript || !transcript.trim()){
@@ -1040,17 +1190,29 @@ function runSummarize(){
   window.rockyAIPipeline(SUMMARIZE_SYSTEM, transcript, {
     actionKey: 'summarize',
     onProgress: (frac) => { stopThinking(); say(`downloading on-device AI… ${Math.round(frac*100)}% 📥`, 0); },
-  }).then(brief => { recordHistory('summary', brief); return copyToClipboard(brief); })
-    .then(()=>{
-      stopThinking();
+  }).then(brief => {
+    stopThinking();
+    if(!brief || !brief.trim()){
+      setState('idle');
+      say("the AI returned nothing — try again 🤔", 3000);
+      return;
+    }
+    recordHistory('summary', brief);
+    return copyToClipboard(brief).then(()=>{
       setState('happy');
       say('context brief copied 📋 — paste it into your next chat', 3400);
       gainXP(15);
       setTimeout(()=>{ if(state==='happy') setState('idle'); }, 2600);
-    })
-    .catch(err=>{
+    }).catch(()=>{
+      // Copy failed but we still got the summary — show it anyway
+      setState('happy');
+      say('summary ready but copy failed — check History 📜', 3400);
+      gainXP(15);
+      setTimeout(()=>{ if(state==='happy') setState('idle'); }, 2600);
+    });
+  }).catch(err=>{
       stopThinking();
-      console.warn('Rocky: summarize failed', err && err.message);
+      console.warn('Bandit: summarize failed', err && err.message);
       setState('idle');
       say(`couldn't get that summary — ${escapeHTML(friendlyError(err))}<br><b>Set up key in settings 🔧</b>`, 4200);
     });
@@ -1188,7 +1350,7 @@ if(menuSettings) menuSettings.addEventListener('click',()=>{
   if(settingStyle) settingStyle.value = enhanceStyle;
   if(settingAskPlaceholders) settingAskPlaceholders.checked = askPlaceholders;
   if(testApiKeyStatus){ testApiKeyStatus.textContent=''; testApiKeyStatus.className='test-key-status'; }
-  settingsModal.classList.add('show');
+  if(settingsModal) settingsModal.classList.add('show');
 });
 
 // Pasting a key auto-picks the matching provider in the dropdown.
@@ -1199,14 +1361,23 @@ if(settingApiKey) settingApiKey.addEventListener('input', ()=>{
 
 // Switching provider swaps the key field to that provider's saved key,
 // so users can stash one key per provider (fuels the failover chain).
-if(settingProvider) settingProvider.addEventListener('change', ()=>{
-  if(settingApiKey) settingApiKey.value = aiSettings.apiKeys[settingProvider.value] || '';
-});
+let currentSettingsProvider = aiSettings.provider || 'builtin';
+if(settingProvider) {
+  currentSettingsProvider = settingProvider.value;
+  settingProvider.addEventListener('change', ()=>{
+    // Save the typed key to the OLD provider before swapping to the new one
+    if (currentSettingsProvider !== 'builtin') {
+      aiSettings.apiKeys[currentSettingsProvider] = settingApiKey ? settingApiKey.value.trim() : '';
+    }
+    currentSettingsProvider = settingProvider.value;
+    if(settingApiKey) settingApiKey.value = aiSettings.apiKeys[currentSettingsProvider] || '';
+  });
+}
 
 const closeSettings = doc.getElementById('closeSettings');
 if(closeSettings) closeSettings.addEventListener('click',()=>{
-  settingsModal.classList.remove('show');
-  petName = settingName.value.trim() || 'Rocky';
+  if(settingsModal) settingsModal.classList.remove('show');
+  petName = (settingName ? settingName.value.trim() : petName) || 'Bandit';
   updateXPDisplay();
 
   const chosenProvider = settingProvider ? (settingProvider.value || 'builtin') : aiSettings.provider;
@@ -1224,9 +1395,9 @@ if(closeSettings) closeSettings.addEventListener('click',()=>{
   persist({ petName, provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model, apiKeys: newApiKeys, enhanceStyle, askPlaceholders });
 });
 
-settingSize.addEventListener('input', e=>{
+if(settingSize) settingSize.addEventListener('input', e=>{
   const s = e.target.value;
-  sizeValue.textContent = Math.round(s*100) + '%';
+  if(sizeValue) sizeValue.textContent = Math.round(s*100) + '%';
   wrap.style.setProperty('--pet-scale', s);
   persist({ settings: { size: parseFloat(s) } });
 });
@@ -1264,21 +1435,23 @@ if(testApiKeyBtn) testApiKeyBtn.addEventListener('click', ()=>{
 const sendBtn = doc.getElementById('sendBtn');
 if(sendBtn) sendBtn.addEventListener('click',()=>{
   pokeActivity();
+  if(!input)return;
   const v=input.value.trim();if(!v)return;
   
   const m=document.createElement('div');
   m.className='msg you'+(v.startsWith('GOAL')?' enhanced':'');
-  m.innerHTML='<div class="who">'+(v.startsWith('GOAL')?'You · enhanced by Rocky':'You')+'</div>'+v.replace(/</g,'&lt;');
-  messages.appendChild(m);
+  m.innerHTML='<div class="who">'+(v.startsWith('GOAL')?'You · enhanced by Bandit':'You')+'</div>'+v.replace(/</g,'&lt;');
+  if(messages)messages.appendChild(m);
   
   input.value='';input.style.height='auto';
-  hint.textContent='Rocky watches this box 👀';
+  if(hint)hint.textContent='Bandit watches this box 👀';
   alertShown=false;
   
   stopRun();
   setState('working');
   say('Hold tight, the AI is cooking! 🍳', 8000);
   
+  if(!messages)return;
   const aiMsg = document.createElement('div');
   aiMsg.className = 'msg ai';
   aiMsg.innerHTML = '<div class="who">VibeBuild AI</div><span class="stream"></span><span class="cursor">█</span>';
@@ -1319,18 +1492,29 @@ Let me know if you need any adjustments!`;
   }, 25);
 });
 
-window.addEventListener('keydown',pokeActivity);
+/* Keyboard shortcut: Ctrl+Shift+E (or Cmd+Shift+E on Mac) → Enhance */
+window.addEventListener('keydown', e => {
+  pokeActivity();
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'e') {
+    e.preventDefault();
+    e.stopPropagation();
+    enhancePrompt();
+  }
+}, { signal });
 
 window.addEventListener('dblclick', e => {
+  if (state === 'working' || state === 'alert') return; // Don't interrupt AI processing or user input
   if (getClosest(e, '#petWrap') || getClosest(e, '.modal')) return;
   
   // Don't play fetch if the user is double-clicking text, inputs, buttons, or links
-  const tag = (getClosest(e, '*') ? getClosest(e, '*').tagName : '') ? (getClosest(e, '*') ? getClosest(e, '*').tagName : '').toUpperCase() : '';
-  const isInteractive = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'A' || tag === 'SELECT' || getClosest(e, 'button') || getClosest(e, 'a') || (getClosest(e, '*') ? getClosest(e, '*').isContentEditable : false);
+  const closest = getClosest(e, '*');
+  const tag = closest && closest.tagName ? closest.tagName.toUpperCase() : '';
+  const isInteractive = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'A' || tag === 'SELECT' || getClosest(e, 'button') || getClosest(e, 'a') || (closest ? closest.isContentEditable : false);
   if (isInteractive) return;
   
   // Also check if text is selected to avoid fetching when highlighting words
-  if (window.getSelection().toString().trim().length > 0) return;
+  const sel = window.getSelection();
+  if (sel && sel.toString().trim().length > 0) return;
 
   
   // drop apple
@@ -1366,7 +1550,8 @@ window.addEventListener('dblclick', e => {
   root.style.left = landing.x + 'px';
   root.style.top = landing.y + 'px';
   
-  setTimeout(()=>{
+  if (fetchTimer) clearTimeout(fetchTimer);
+  fetchTimer = setTimeout(()=>{
     if (!isFetching) return; // cancelled by drag
     isFetching = false;
     root.style.transition = '';
@@ -1374,11 +1559,11 @@ window.addEventListener('dblclick', e => {
     eatApple(3);
     persist({ position: { x: root.offsetLeft, y: root.offsetTop } });
   }, duration);
-});
+}, { signal });
 
 window.addEventListener('pointerdown',e=>{
   if(!getClosest(e, '#rocky-root'))pokeActivity();
-});
+}, { signal });
 
 /* =========================================================
    HYDRATE FROM SAVED STATE, THEN REVEAL
@@ -1441,6 +1626,13 @@ if(window.RockyStorage) window.RockyStorage.onStateChanged(applyRemoteState);
 // Catch any pending debounced write before the page (and this script) is torn down.
 window.addEventListener('beforeunload', ()=>{
   if(window.RockyStorage) window.RockyStorage.flush();
+}, { signal });
+
+cleanupTasks.push(() => {
+  clearTimeout(gainXP._t);
+  clearTimeout(say._t);
+  stopRun();
+  lastEnhance = null;
 });
 
 root.style.visibility = '';
@@ -1451,7 +1643,7 @@ root.style.visibility = '';
 // measurement — rAF for the common case, 'load' as a belt-and-suspenders for
 // slow-loading pages where even a rAF fires before styles are in.
 requestAnimationFrame(reclampToViewport);
-window.addEventListener('load', reclampToViewport);
+window.addEventListener('load', reclampToViewport, { signal });
 
 // Daily streak: first visit each local day counts; consecutive days earn +5 XP.
 (function checkDailyStreak(){
@@ -1470,7 +1662,7 @@ window.addEventListener('load', reclampToViewport);
 
 if(!hydrated.onboarded){
   setTimeout(()=>{
-    say(`hi, I'm <b>${escapeHTML(petName)}</b> 🦝<br>you can change my name in Settings!`,4000);
+    say(`hi, I'm <b>${escapeHTML(petName)}</b> 🦝<br>right-click me for the menu!`,4000);
     persist({ onboarded: true });
   },700);
 } else if(Math.random()<0.35){
@@ -1478,7 +1670,7 @@ if(!hydrated.onboarded){
   setTimeout(()=>{
     if(state!=='idle') return;
     const h=new Date().getHours();
-    const g = h<6 ? 'up late? me too 🌙' : h<12 ? 'morning! ☀️ let\'s build' : h<18 ? 'afternoon grind 🔨' : 'evening vibes 🌆';
+    const g = h<6 ? 'up late hacking? me too 🌙' : h<12 ? 'morning! ☀️ let\'s build something' : h<18 ? 'afternoon grind 🔨 let\'s go' : 'evening vibes 🌆 still at it?';
     say(g,2600);
   },1400);
 }
@@ -1492,7 +1684,7 @@ if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
       if (demoRoot) demoRoot.style.visibility = 'hidden';
       const loadPromise = window.RockyStorage ? window.RockyStorage.loadState() : Promise.resolve(null);
       loadPromise
-        .catch(err => { console.warn('Rocky: state load failed, using defaults', err); return null; })
+        .catch(err => { console.warn('Bandit: state load failed, using defaults', err); return null; })
         .then(state => initRocky(state));
     });
 }
