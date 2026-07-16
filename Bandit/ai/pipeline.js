@@ -145,7 +145,7 @@
       nanoResult = null;
     }
     if (nanoResult) {
-      if (debug) console.log('[Rocky AI]', 'action=' + actionKey, 'provider=nano', (Date.now() - startedAt) + 'ms');
+      if (debug) console.log('[Bandit AI]', 'action=' + actionKey, 'provider=nano', (Date.now() - startedAt) + 'ms');
       return nanoResult;
     }
 
@@ -154,7 +154,7 @@
     }
 
     const response = await callBackgroundWorker(systemPrompt, userText, debug);
-    if (debug) console.log('[Rocky AI]', 'action=' + actionKey, 'provider=' + response.provider, (Date.now() - startedAt) + 'ms');
+    if (debug) console.log('[Bandit AI]', 'action=' + actionKey, 'provider=' + response.provider, (Date.now() - startedAt) + 'ms');
     return response.text;
   }
 
