@@ -17,7 +17,7 @@ A pixel-art raccoon that lives on every page you browse, turns your rough prompt
 
 1. [What Rocky Does](#what-rocky-does)
 2. [With vs. Without Prompting](#with-vs-without-prompting)
-3. [Install](#install)
+3. [Availability](#availability)
 4. [AI Setup](#ai-setup)
 5. [Interactions Guide](#interactions-guide)
 6. [Leveling](#leveling)
