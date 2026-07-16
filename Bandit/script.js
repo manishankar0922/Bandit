@@ -779,7 +779,21 @@ function enhancePrompt() {
   const styles = (window.RockyPrompts && window.RockyPrompts.ENHANCE_SYSTEMS) || {};
   const ENHANCE_SYSTEM = styles[enhanceStyle] || (window.RockyPrompts ? window.RockyPrompts.ENHANCE_SYSTEM : '');
 
-  window.rockyAIPipeline(ENHANCE_SYSTEM, val.trim(), {
+  // NEW FEATURE: Context-Aware Enhancement
+  // Scrape the ongoing chat so the AI knows what was already discussed.
+  let chatContext = '';
+  try {
+    chatContext = scrapeConversation();
+  } catch (err) {}
+
+  let promptPayload = trimmedVal;
+  if (chatContext && chatContext.trim().length > 50) {
+    // Only pass the last 1500 chars to avoid blowing out context windows on long chats
+    const recentContext = chatContext.slice(-1500);
+    promptPayload = `[ONGOING CHAT CONTEXT:\n${recentContext}]\n\nUser's next request to enhance:\n${trimmedVal}`;
+  }
+
+  window.rockyAIPipeline(ENHANCE_SYSTEM, promptPayload, {
     actionKey: 'enhance',
     onProgress: (frac) => { stopThinking(); say(`downloading on-device AI… ${Math.round(frac*100)}% 📥`, 0); },
   }).then(result => {
