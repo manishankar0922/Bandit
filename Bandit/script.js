@@ -331,6 +331,20 @@ function initRocky(savedState) {
     copyHistory = [{ type, text, at: Date.now() }, ...copyHistory].slice(0, 10);
     persist({ history: copyHistory });
   }
+  const currentVersion = (rockyApi && rockyApi.runtime && rockyApi.runtime.getManifest) ? rockyApi.runtime.getManifest().version : '2.1';
+  let lastSeenVersion = hydrated.lastSeenVersion || '';
+  let updateMessageCount = hydrated.updateMessageCount || 0;
+
+  if (lastSeenVersion && lastSeenVersion !== currentVersion) {
+    lastSeenVersion = currentVersion;
+    updateMessageCount = 0;
+    persist({ lastSeenVersion, updateMessageCount });
+  } else if (!lastSeenVersion) {
+    lastSeenVersion = currentVersion;
+    updateMessageCount = 5; // Don't show on very first install
+    persist({ lastSeenVersion, updateMessageCount });
+  }
+
   const FEED_COOLDOWN_MS = 60000;
   const LEVELS = [0, 20, 50, 100]; // level 1..4 thresholds; Level 4 is max, so no 200 cap.
   let lastActivity = Date.now();
@@ -480,7 +494,13 @@ function initRocky(savedState) {
   ];
   const chatterInterval = setInterval(() => {
     if (state === 'idle' && Date.now() - lastActivity > 6000 && Date.now() - lastActivity < 18000) {
-      say(idleLines[Math.floor(Math.random() * idleLines.length)], 2400);
+      if (updateMessageCount < 5) {
+        say(`I've been updated to v${currentVersion}! ✨<br>Check out my new menu features!`, 4000);
+        updateMessageCount++;
+        persist({ updateMessageCount });
+      } else {
+        say(idleLines[Math.floor(Math.random() * idleLines.length)], 2400);
+      }
     }
   }, 11000);
   cleanupTasks.push(() => clearInterval(chatterInterval));

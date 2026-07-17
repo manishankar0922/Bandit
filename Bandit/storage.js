@@ -24,6 +24,8 @@
     lastVisitDay: '', // 'YYYY-MM-DD' of the last counted visit
     history: [], // last 10 results: { type: 'enhance'|'summary', text, at }
     disabledSites: [], // hostnames where Bandit is disabled
+    lastSeenVersion: '', // track version updates
+    updateMessageCount: 0, // max 5 reminders
   };
 
   const KNOWN_PROVIDERS = ['builtin', 'anthropic', 'openai', 'gemini', 'groq'];
@@ -88,6 +90,8 @@
       disabledSites: Array.isArray(s.disabledSites)
         ? s.disabledSites.filter(h => typeof h === 'string')
         : DEFAULTS.disabledSites,
+      lastSeenVersion: typeof s.lastSeenVersion === 'string' ? s.lastSeenVersion : DEFAULTS.lastSeenVersion,
+      updateMessageCount: (typeof s.updateMessageCount === 'number' && Number.isFinite(s.updateMessageCount) && s.updateMessageCount >= 0) ? s.updateMessageCount : DEFAULTS.updateMessageCount,
     };
   }
 
