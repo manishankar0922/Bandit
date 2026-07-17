@@ -12,6 +12,9 @@
       }
     }
   },
+  "action": {
+    "default_title": "Toggle Bandit on this site"
+  },
   "permissions": ["storage", "contextMenus", "clipboardWrite"],
   "host_permissions": [
     "https://api.anthropic.com/*",

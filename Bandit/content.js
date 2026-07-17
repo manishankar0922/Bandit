@@ -63,6 +63,12 @@ if (!window.rockyInjected) {
 
       // Extract ONLY the pet and its settings
       const rockyRoot = tempDiv.querySelector('#rocky-root');
+      
+      // If the user disabled Bandit for this site, abort and clean up
+      if (state && state.disabledSites && state.disabledSites.includes(window.location.hostname)) {
+        host.remove();
+        return;
+      }
       const settingsModal = tempDiv.querySelector('#settingsModal');
       const toast = tempDiv.querySelector('#toast');
 

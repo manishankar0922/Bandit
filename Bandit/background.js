@@ -184,3 +184,27 @@ api.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   return true; // keep the message channel open for the async sendResponse above
 });
+
+api.action.onClicked.addListener(async (tab) => {
+  if (!tab || !tab.url || !tab.url.startsWith('http')) return;
+  const hostname = new URL(tab.url).hostname;
+  if (!hostname) return;
+
+  try {
+    const state = await self.RockyStorage.loadState();
+    const disabledSites = state.disabledSites || [];
+    
+    if (disabledSites.includes(hostname)) {
+      // Re-enable
+      self.RockyStorage.saveState({ disabledSites: disabledSites.filter(h => h !== hostname) }, { immediate: true });
+    } else {
+      // Disable
+      self.RockyStorage.saveState({ disabledSites: [...disabledSites, hostname] }, { immediate: true });
+    }
+    
+    // Reload the tab so changes take effect
+    api.tabs.reload(tab.id);
+  } catch (err) {
+    console.error('Failed to toggle Bandit state', err);
+  }
+});

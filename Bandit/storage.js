@@ -23,6 +23,7 @@
     streak: 0, // consecutive days Rocky has been visited
     lastVisitDay: '', // 'YYYY-MM-DD' of the last counted visit
     history: [], // last 10 results: { type: 'enhance'|'summary', text, at }
+    disabledSites: [], // hostnames where Bandit is disabled
   };
 
   const KNOWN_PROVIDERS = ['builtin', 'anthropic', 'openai', 'gemini', 'groq'];
@@ -84,6 +85,9 @@
       history: Array.isArray(s.history)
         ? s.history.filter(h => h && typeof h.type === 'string' && typeof h.text === 'string' && typeof h.at === 'number').slice(0, 10)
         : DEFAULTS.history,
+      disabledSites: Array.isArray(s.disabledSites)
+        ? s.disabledSites.filter(h => typeof h === 'string')
+        : DEFAULTS.disabledSites,
     };
   }
 

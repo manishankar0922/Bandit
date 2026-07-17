@@ -1225,6 +1225,19 @@ function initRocky(savedState) {
     showHistoryModal();
   });
 
+  const menuDisable = doc.getElementById('menuDisable');
+  if (menuDisable) menuDisable.addEventListener('click', () => {
+    wrap.classList.remove('show-menu');
+    const hostname = window.location.hostname;
+    const currentList = s.disabledSites || [];
+    if (!currentList.includes(hostname)) {
+      s.disabledSites = [...currentList, hostname];
+      store.saveState({ disabledSites: s.disabledSites }, { immediate: true });
+      say('ZZZ... (disabled on this site)');
+      setTimeout(() => window.location.reload(), 1500);
+    }
+  });
+
   function runSummarize() {
     if (state === 'working') return;
     pokeActivity(); stopRun();
@@ -1430,6 +1443,19 @@ function initRocky(savedState) {
       }
       currentSettingsProvider = settingProvider.value;
       if (settingApiKey) settingApiKey.value = aiSettings.apiKeys[currentSettingsProvider] || '';
+    });
+  }
+
+  const resetDisabledSites = doc.getElementById('resetDisabledSites');
+  const resetDisabledStatus = doc.getElementById('resetDisabledStatus');
+  if (resetDisabledSites) {
+    resetDisabledSites.addEventListener('click', () => {
+      s.disabledSites = [];
+      store.saveState({ disabledSites: [] }, { immediate: true });
+      if (resetDisabledStatus) {
+        resetDisabledStatus.textContent = 'Cleared!';
+        setTimeout(() => { resetDisabledStatus.textContent = ''; }, 2000);
+      }
     });
   }
 
