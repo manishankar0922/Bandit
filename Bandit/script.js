@@ -285,7 +285,7 @@ function initRocky(savedState) {
   });
   const fEyesG = document.createElementNS(NS, 'g'); fBodyG.appendChild(fEyesG);
   const fAccG = document.createElementNS(NS, 'g'); fBodyG.appendChild(fAccG);/* eye/accessory control */
-  function overlay(g, s) { if (!g) return; g.innerHTML = ''; s.forEach(([x, y, w, h, c]) => rect(x, y, w, h, C[c] || c, g)); }
+  function overlay(g, s) { if (!g) return; g.replaceChildren(); s.forEach(([x, y, w, h, c]) => rect(x, y, w, h, C[c] || c, g)); }
   function eyesOpen() { overlay(fEyesG, F_EYES_OPEN); }
   function eyesClosed() { overlay(fEyesG, F_EYES_CLOSED); }
   function eyesHappy() { overlay(fEyesG, F_EYES_HAPPY); }
@@ -350,7 +350,7 @@ function initRocky(savedState) {
 
   function say(html, ms = 2600) {
     if (!bubble) return;
-    bubble.innerHTML = html; bubble.classList.add('show');
+    bubble.replaceChildren(...new DOMParser().parseFromString(html, 'text/html').body.childNodes); bubble.classList.add('show');
     clearTimeout(say._t);
     if (ms > 0) say._t = setTimeout(() => bubble.classList.remove('show'), ms);
   }
@@ -711,7 +711,7 @@ function initRocky(savedState) {
 
     const renderQuestion = () => {
       const ph = placeholders[i];
-      modal.innerHTML = '';
+      modal.replaceChildren();
 
       const h = document.createElement('h3');
       h.textContent = `🦝 quick question ${i + 1}/${placeholders.length}`;
@@ -875,7 +875,7 @@ function initRocky(savedState) {
     const range = next - base; const pct = range > 0 ? Math.min(100, ((xp - base) / range) * 100) : 100;
     if (xpFill) xpFill.style.width = pct + '%';
     const name = (petName || 'Bandit').toUpperCase();
-    if (xpLabel) xpLabel.innerHTML = `${escapeHTML(name)} · <b>LVL ${level}</b> · ${xp}/${LEVELS[level] ?? 'MAX'} XP`;
+    if (xpLabel) xpLabel.replaceChildren(...new DOMParser().parseFromString(`${escapeHTML(name)} · <b>LVL ${level}</b> · ${xp}/${LEVELS[level] ?? 'MAX'} XP`, 'text/html').body.childNodes);
   }
 
   function gainXP(n, silent = false) {
@@ -992,7 +992,7 @@ function initRocky(savedState) {
   function spawnHeart() {
     const h = document.createElement('div');
     h.className = 'heart';
-    h.innerHTML = '<div style="width:4px;height:4px;background:transparent;box-shadow:4px 0 #ff4b4b,12px 0 #ff4b4b,0 4px #ff4b4b,4px 4px #ff4b4b,8px 4px #ff4b4b,12px 4px #ff4b4b,16px 4px #ff4b4b,4px 8px #ff4b4b,8px 8px #ff4b4b,12px 8px #ff4b4b,8px 12px #ff4b4b"></div>';
+    h.replaceChildren(...new DOMParser().parseFromString('<div style="width:4px;height:4px;background:transparent;box-shadow:4px 0 #ff4b4b,12px 0 #ff4b4b,0 4px #ff4b4b,4px 4px #ff4b4b,8px 4px #ff4b4b,12px 4px #ff4b4b,16px 4px #ff4b4b,4px 8px #ff4b4b,8px 8px #ff4b4b,12px 8px #ff4b4b,8px 12px #ff4b4b"></div>', 'text/html').body.childNodes);
     const rect = pet.getBoundingClientRect();
     h.style.left = (rect.left + rect.width / 2 - 10 + (Math.random() * 40 - 20)) + 'px';
     h.style.top = (rect.top - 10) + 'px';
@@ -1499,7 +1499,7 @@ function initRocky(savedState) {
 
     const m = document.createElement('div');
     m.className = 'msg you' + (v.startsWith('GOAL') ? ' enhanced' : '');
-    m.innerHTML = '<div class="who">' + (v.startsWith('GOAL') ? 'You · enhanced by Bandit' : 'You') + '</div>' + v.replace(/</g, '&lt;');
+    m.replaceChildren(...new DOMParser().parseFromString('<div class="who">' + (v.startsWith('GOAL') ? 'You · enhanced by Bandit' : 'You') + '</div>' + v.replace(/</g, '&lt;'), 'text/html').body.childNodes);
     if (messages) messages.appendChild(m);
 
     input.value = ''; input.style.height = 'auto';
@@ -1513,7 +1513,7 @@ function initRocky(savedState) {
     if (!messages) return;
     const aiMsg = document.createElement('div');
     aiMsg.className = 'msg ai';
-    aiMsg.innerHTML = '<div class="who">VibeBuild AI</div><span class="stream"></span><span class="cursor">█</span>';
+    aiMsg.replaceChildren(...new DOMParser().parseFromString('<div class="who">VibeBuild AI</div><span class="stream"></span><span class="cursor">█</span>', 'text/html').body.childNodes);
     messages.appendChild(aiMsg);
     messages.scrollTop = messages.scrollHeight;
 

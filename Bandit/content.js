@@ -58,8 +58,8 @@ if (!window.rockyInjected) {
       bodyContent = bodyContent.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
 
       // Parse the HTML string into a DOM element
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = bodyContent;
+      const parser = new DOMParser();
+      const tempDiv = parser.parseFromString(bodyContent, 'text/html').body;
 
       // Extract ONLY the pet and its settings
       const rockyRoot = tempDiv.querySelector('#rocky-root');
