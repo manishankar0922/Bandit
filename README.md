@@ -40,6 +40,7 @@ A pixel-art raccoon that lives on every page you browse, turns your rough prompt
 | 🍪 **Feed** | +5 XP snack with a 60s cooldown — pure game mechanic, no AI |
 | 🎮 **Pet sim** | He wanders, sleeps, plays fetch (double-click anywhere), gets petted, watches your cursor, and levels up with visible accessories |
 | 📜 **History** | Last 10 Enhance/Summarize results with one-click re-copy and clear-all |
+| 🔔 **Smart Updates** | When the extension auto-updates in the background, Bandit will excitedly let you know about his new features! |
 
 
 Everything persists — XP, level, name, position, settings — and syncs live across all open tabs.
@@ -110,11 +111,11 @@ Pasting a key **auto-selects the matching provider** from its prefix. The **Test
 |---|---|
 | Type >7 chars in a text box | Bandit perks up and offers to enhance |
 | **Double-click Bandit** | Enhance the focused/visible text box |
-| **Right-click Bandit** | Menu: Enhance Prompt · Undo · Summarize Chat · History · Disable on this site · Go Home · Feed Bandit · Settings |
+| **Right-click Bandit** | Menu: Enhance Prompt · Undo · Summarize Chat · Disable on this site <br> **➕ More...** (History · Go Home · Feed Bandit · Settings) |
 | **Extension Icon Click** | Instantly toggles Bandit on/off for the current website |
 | **Ctrl+Shift+E** (or Cmd+Shift+E on Mac) | Enhance the focused text box instantly — no click needed |
 | **📜 History** | Last 10 Enhance/Summarize results — click any to re-copy, or clear all |
-| **🏠 Go Home** | Sends Bandit to sleep in the bottom-right corner out of your way |
+| **🏠 Go Home** | Bandit spawns a tent (🏕️) in the bottom-right corner and goes to sleep, staying completely out of your way |
 | **Drag Bandit** | Move him anywhere (position persists; he can't be stranded off-screen) |
 | **Double-click empty page space** | Drop an apple — he runs over and eats it (+3 XP) |
 | Rub cursor over him | Hearts + happy eyes (+1 XP, rate-limited) |
