@@ -1238,6 +1238,43 @@ function initRocky(savedState) {
     }
   });
 
+  const menuHome = doc.getElementById('menuHome');
+  if (menuHome) menuHome.addEventListener('click', () => {
+    wrap.classList.remove('show-menu');
+    stopRun();
+    setState('running');
+    isFetching = true;
+
+    const startX = root.offsetLeft;
+    const startY = root.offsetTop;
+
+    // Go to the bottom right corner (leave a small margin)
+    const landing = clampToViewport(window.innerWidth - 120, window.innerHeight - 150);
+
+    const dx = landing.x - startX;
+    const dy = landing.y - startY;
+    pet.className = `pet ${dx < 0 ? 'face-left' : 'face-right'}`;
+
+    const dist = Math.hypot(dx, dy);
+    const duration = dist * 4; // 4ms per pixel speed
+
+    root.style.transition = `left ${duration}ms linear, top ${duration}ms linear`;
+    root.style.right = 'auto';
+    root.style.bottom = 'auto';
+    root.style.left = landing.x + 'px';
+    root.style.top = landing.y + 'px';
+
+    if (fetchTimer) clearTimeout(fetchTimer);
+    fetchTimer = setTimeout(() => {
+      isFetching = false;
+      root.style.transition = '';
+      persist({ position: { x: root.offsetLeft, y: root.offsetTop } });
+      // Force sleep and clear activity timer so he stays there
+      setState('sleeping');
+      clearTimeout(activityTimer);
+    }, duration);
+  });
+
   function runSummarize() {
     if (state === 'working') return;
     pokeActivity(); stopRun();
