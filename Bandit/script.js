@@ -654,7 +654,7 @@ function initRocky(savedState) {
   }
   function extractPlaceholders(text) {
     const found = new Set();
-    const re = /\[([^\[\]\n]{2,48})\]/g;
+    const re = /(?:^|[^a-zA-Z0-9_])\[([a-zA-Z][a-zA-Z0-9\s_/\-\.,']{1,48})\](?!\()/g;
     let m;
     while ((m = re.exec(text))) found.add(m[1]);
     return [...found];
