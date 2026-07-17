@@ -357,6 +357,10 @@ function initRocky(savedState) {
   function setState(s) {
     wrap.classList.remove('alert', 'working', 'happy', 'sleeping', 'levelup', 'running', 'scooting', 'hopping');
     if (s !== 'idle') wrap.classList.add(s);
+    if (s !== 'sleeping' && state === 'sleeping') {
+      const oldHouse = doc.querySelector('.bandit-house');
+      if (oldHouse) oldHouse.remove();
+    }
     state = s;
     if (s === 'sleeping') eyesClosed();
     else if (level < 2) eyesOpen();
@@ -1316,9 +1320,12 @@ function initRocky(savedState) {
       setState('sleeping');
       clearTimeout(activityTimer);
       
+      const oldHouse = doc.querySelector('.bandit-house');
+      if (oldHouse) oldHouse.remove();
+
       const house = document.createElement('div');
       house.innerText = '🏕️';
-      house.style.position = 'absolute';
+      house.style.position = 'fixed';
       house.style.fontSize = '32px';
       house.style.left = (landing.x + 10) + 'px';
       house.style.top = (landing.y - 10) + 'px';
