@@ -1161,8 +1161,9 @@ function initRocky(savedState) {
   const menuMore = doc.getElementById('menuMore');
   const menuExtra = doc.getElementById('menuExtra');
   if (menuMore && menuExtra) {
-    menuMore.addEventListener('click', (e) => {
+    menuMore.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
+      e.preventDefault();
       menuMore.style.display = 'none';
       menuExtra.style.display = 'flex';
     });
