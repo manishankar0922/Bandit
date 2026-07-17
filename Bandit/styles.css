@@ -227,3 +227,7 @@
   .test-key-status.fail{color:#ff6b6b}
 
   @media (prefers-reduced-motion:reduce){ .pet *,.pet-wrap *{animation:none !important;transition:none !important} }
+.pet-wrap.menu-left .pet-menu {
+  left: auto;
+  right: 100%;
+}

@@ -939,6 +939,15 @@ function initRocky(savedState) {
 
   wrap.addEventListener('contextmenu', e => {
     e.preventDefault();
+    const rect = root.getBoundingClientRect();
+    if (rect.right + 200 > window.innerWidth) wrap.classList.add('menu-left');
+    else wrap.classList.remove('menu-left');
+    
+    const menuExtra = doc.getElementById('menuExtra');
+    const menuMore = doc.getElementById('menuMore');
+    if (menuExtra) menuExtra.style.display = 'none';
+    if (menuMore) menuMore.style.display = 'block';
+
     wrap.classList.add('show-menu');
   });
   window.addEventListener('pointerdown', e => {
@@ -1149,6 +1158,16 @@ function initRocky(savedState) {
     }
   });
 
+  const menuMore = doc.getElementById('menuMore');
+  const menuExtra = doc.getElementById('menuExtra');
+  if (menuMore && menuExtra) {
+    menuMore.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menuMore.style.display = 'none';
+      menuExtra.style.display = 'flex';
+    });
+  }
+
   /* =========================================================
      HISTORY — last 10 Enhance/Summarize results, click to copy.
      ========================================================= */
@@ -1234,7 +1253,10 @@ function initRocky(savedState) {
       s.disabledSites = [...currentList, hostname];
       store.saveState({ disabledSites: s.disabledSites }, { immediate: true });
       say('ZZZ... (disabled on this site)');
-      setTimeout(() => window.location.reload(), 1500);
+      setTimeout(() => {
+        if (shadowHost) shadowHost.remove();
+        else window.location.reload();
+      }, 1500);
     }
   });
 
@@ -1272,6 +1294,16 @@ function initRocky(savedState) {
       // Force sleep and clear activity timer so he stays there
       setState('sleeping');
       clearTimeout(activityTimer);
+      
+      const house = document.createElement('div');
+      house.innerText = '🏕️';
+      house.style.position = 'absolute';
+      house.style.fontSize = '32px';
+      house.style.left = (landing.x + 10) + 'px';
+      house.style.top = (landing.y - 10) + 'px';
+      house.style.zIndex = '90';
+      house.className = 'bandit-house';
+      docBody.appendChild(house);
     }, duration);
   });
 
