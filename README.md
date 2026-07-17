@@ -5,7 +5,7 @@
 ![Chrome / Edge](https://img.shields.io/badge/Chrome%20%2F%20Edge-Coming%20Soon-4285F4?logo=googlechrome&logoColor=white)
 ![AI Providers](https://img.shields.io/badge/AI-Nano%20%C2%B7%20Claude%20%C2%B7%20OpenAI%20%C2%B7%20Gemini%20%C2%B7%20Groq-f5a524)
 ![No tracking](https://img.shields.io/badge/telemetry-none-2ea44f)
-![Version](https://img.shields.io/badge/version-1.1-lightgrey)
+![Version](https://img.shields.io/badge/version-2.1-lightgrey)
 
 A pixel-art raccoon that lives on every page you browse, turns your rough prompts into engineered ones, and summarizes AI chats into portable context briefs. Built as a cross-browser WebExtension (Manifest V3). Now with ChatGPT scraping support and keyboard shortcuts.
 
@@ -110,9 +110,11 @@ Pasting a key **auto-selects the matching provider** from its prefix. The **Test
 |---|---|
 | Type >7 chars in a text box | Bandit perks up and offers to enhance |
 | **Double-click Bandit** | Enhance the focused/visible text box |
-| **Right-click Bandit** | Menu: Enhance Prompt · Undo · Summarize Chat · History · Feed Bandit · Settings |
+| **Right-click Bandit** | Menu: Enhance Prompt · Undo · Summarize Chat · History · Disable on this site · Go Home · Feed Bandit · Settings |
+| **Extension Icon Click** | Instantly toggles Bandit on/off for the current website |
 | **Ctrl+Shift+E** (or Cmd+Shift+E on Mac) | Enhance the focused text box instantly — no click needed |
 | **📜 History** | Last 10 Enhance/Summarize results — click any to re-copy, or clear all |
+| **🏠 Go Home** | Sends Bandit to sleep in the bottom-right corner out of your way |
 | **Drag Bandit** | Move him anywhere (position persists; he can't be stranded off-screen) |
 | **Double-click empty page space** | Drop an apple — he runs over and eats it (+3 XP) |
 | Rub cursor over him | Hearts + happy eyes (+1 XP, rate-limited) |
