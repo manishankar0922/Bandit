@@ -1591,11 +1591,33 @@ function initRocky(savedState) {
   const testApiKeyBtn = doc.getElementById('testApiKey');
   const testApiKeyStatus = doc.getElementById('testApiKeyStatus');
 
+  const getApiKeyLink = doc.getElementById('getApiKeyLink');
+
+  const API_LINKS = {
+    anthropic: 'https://console.anthropic.com/settings/keys',
+    openai: 'https://platform.openai.com/api-keys',
+    gemini: 'https://aistudio.google.com/app/apikey',
+    groq: 'https://console.groq.com/keys'
+  };
+
+  function updateApiKeyLink(provider) {
+    if (!getApiKeyLink) return;
+    if (provider === 'builtin') {
+      getApiKeyLink.style.display = 'none';
+    } else {
+      getApiKeyLink.style.display = 'inline';
+      getApiKeyLink.href = API_LINKS[provider] || '#';
+    }
+  }
+
   const menuSettings = doc.getElementById('menuSettings');
   if (menuSettings) menuSettings.addEventListener('click', (e) => {
     e.preventDefault(); e.stopPropagation();
     wrap.classList.remove('show-menu');
-    if (settingProvider) settingProvider.value = aiSettings.provider || 'builtin';
+    if (settingProvider) {
+      settingProvider.value = aiSettings.provider || 'builtin';
+      updateApiKeyLink(settingProvider.value);
+    }
     // Hydrate the key field from the per-provider map first, falling back to legacy flat field
     if (settingApiKey) settingApiKey.value = (aiSettings.apiKeys && aiSettings.apiKeys[aiSettings.provider]) || aiSettings.apiKey || '';
     if (settingModel) settingModel.value = aiSettings.model || '';
@@ -1617,6 +1639,9 @@ function initRocky(savedState) {
   if (settingProvider) {
     currentSettingsProvider = settingProvider.value;
     settingProvider.addEventListener('change', () => {
+      updateApiKeyLink(settingProvider.value);
+      // load the specific key if present
+      if (settingApiKey) settingApiKey.value = aiSettings.apiKeys[settingProvider.value] || '';
       // Save the typed key to the OLD provider before swapping to the new one
       if (currentSettingsProvider !== 'builtin') {
         aiSettings.apiKeys[currentSettingsProvider] = settingApiKey ? settingApiKey.value.trim() : '';
@@ -1934,7 +1959,7 @@ Let me know if you need any adjustments!`;
       say('Type a rough idea in any text box,<br>then press <b>Ctrl+Shift+E</b> ⚡<br>I\'ll turn it into a pro prompt!', 6000);
     }, 5500);
     setTimeout(() => {
-      say('<b>Right-click me</b> for the full menu:<br>✨ Enhance · 📋 Summarize · ⚙️ Settings', 5000);
+      say('<b>Click on me</b> for the full menu!<br>Or select text and <b>Right-Click</b> to enhance.', 5000);
       persist({ onboarded: true });
     }, 12000);
   } else if (Math.random() < 0.35) {

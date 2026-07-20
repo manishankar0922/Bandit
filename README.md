@@ -7,7 +7,7 @@
 [![Chrome / Edge](https://img.shields.io/badge/Chrome%20%2F%20Edge-Coming%20Soon-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge)](#-installation--availability)
 [![AI Providers](https://img.shields.io/badge/AI-Nano%20·%20Claude%20·%20OpenAI%20·%20Gemini%20·%20Groq-f5a524?style=for-the-badge)](#-features)
 [![No telemetry](https://img.shields.io/badge/telemetry-none-2ea44f?style=for-the-badge)](PRIVACY.md)
-[![Version](https://img.shields.io/badge/version-2.3.2-lightgrey?style=for-the-badge)](#)
+[![Version](https://img.shields.io/badge/version-2.3.3-lightgrey?style=for-the-badge)](#)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
 **Feed him trash prompts. He gives back treasure.**
