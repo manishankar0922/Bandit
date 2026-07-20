@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bandit — AI Prompt Companion",
-  "version": "2.3.3",
+  "version": "2.3.2",
   "description": "A pixel-art raccoon that lives on every page — enhances your prompts, summarizes AI chats, and levels up as you use it.",
   "browser_specific_settings": {
     "gecko": {
@@ -20,7 +20,8 @@
     "https://api.anthropic.com/*",
     "https://api.openai.com/*",
     "https://generativelanguage.googleapis.com/*",
-    "https://api.groq.com/*"
+    "https://api.groq.com/*",
+    "https://integrate.api.nvidia.com/*"
   ],
   "background": {
     "scripts": ["storage.js", "ai/providers.js", "background.js"]

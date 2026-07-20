@@ -7,6 +7,7 @@
     openai:    { endpoint: 'https://api.openai.com/v1/chat/completions', auth: 'bearer', model: 'gpt-4o-mini', format: 'openai' },
     gemini:    { endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent', auth: 'query', model: 'gemini-2.0-flash', format: 'gemini' },
     groq:      { endpoint: 'https://api.groq.com/openai/v1/chat/completions', auth: 'bearer', model: 'llama-3.3-70b-versatile', format: 'openai' }, // Groq speaks the OpenAI chat-completions shape
+    nvidia:    { endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions', auth: 'bearer', model: 'meta/llama3-70b-instruct', format: 'openai' },
   };
 
   // Best-effort guess from key shape, used to auto-select the settings
@@ -17,6 +18,7 @@
     if (!key) return null;
     if (key.startsWith('sk-ant-')) return 'anthropic';
     if (key.startsWith('gsk_')) return 'groq';
+    if (key.startsWith('nvapi-')) return 'nvidia';
     if (key.startsWith('sk-proj-') || key.startsWith('sk-')) return 'openai';
     return 'gemini'; // Gemini keys have no consistent prefix — last resort.
   }

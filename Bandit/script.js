@@ -1597,7 +1597,8 @@ function initRocky(savedState) {
     anthropic: 'https://console.anthropic.com/settings/keys',
     openai: 'https://platform.openai.com/api-keys',
     gemini: 'https://aistudio.google.com/app/apikey',
-    groq: 'https://console.groq.com/keys'
+    groq: 'https://console.groq.com/keys',
+    nvidia: 'https://build.nvidia.com/explore/discover'
   };
 
   function updateApiKeyLink(provider) {
