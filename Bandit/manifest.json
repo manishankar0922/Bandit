@@ -5,7 +5,7 @@
   "description": "A pixel-art raccoon that lives on every page — enhances your prompts, summarizes AI chats, and levels up as you use it.",
   "browser_specific_settings": {
     "gecko": {
-      "id": "rocky@vibecoding.pet",
+      "id": "bandit@vibecoding.pet",
       "strict_min_version": "142.0",
       "data_collection_permissions": {
         "required": ["none"]
@@ -34,7 +34,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["index.html", "styles.css", "script.js", "storage.js"],
+      "resources": ["index.html", "styles.css"],
       "matches": ["<all_urls>"]
     }
   ]
