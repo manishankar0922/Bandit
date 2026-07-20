@@ -941,9 +941,18 @@ function initRocky(savedState) {
       }
     }).catch(err => {
       stopThinking();
-      console.warn('Bandit: enhance failed', err && err.message);
+      const errMsg = err && err.message ? err.message : String(err);
+      console.warn('Bandit: enhance failed', errMsg);
       setState('idle');
       say(`couldn't enhance that — ${escapeHTML(friendlyError(err))}<br><b>Set up key in settings 🔧</b>`, 4200);
+      
+      // Auto-open settings if it's an API key or missing provider issue
+      if (errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('cloud provider')) {
+        setTimeout(() => {
+          const btn = doc.getElementById('menuSettings');
+          if (btn) btn.click();
+        }, 1200);
+      }
     });
   }
 
@@ -1443,9 +1452,17 @@ function initRocky(savedState) {
       });
     }).catch(err => {
       stopThinking();
-      console.warn('Bandit: summarize failed', err && err.message);
+      const errMsg = err && err.message ? err.message : String(err);
+      console.warn('Bandit: summarize failed', errMsg);
       setState('idle');
       say(`couldn't get that summary — ${escapeHTML(friendlyError(err))}<br><b>Set up key in settings 🔧</b>`, 4200);
+      
+      if (errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('cloud provider')) {
+        setTimeout(() => {
+          const btn = doc.getElementById('menuSettings');
+          if (btn) btn.click();
+        }, 1200);
+      }
     });
   }
 
