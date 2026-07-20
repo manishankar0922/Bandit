@@ -53,7 +53,7 @@ What you type vs. what the AI coding tool actually receives after Bandit's Enhan
 **Without Bandit** (what you typed):
 
 ```
-create login page please with backedn
+create login page please with backend
 ```
 
 **With Bandit** (Structured style):
