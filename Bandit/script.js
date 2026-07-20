@@ -1212,13 +1212,15 @@ function initRocky(savedState) {
   window.addEventListener('orientationchange', reclampToViewport, { signal });
 
   const menuEnhance = doc.getElementById('menuEnhance');
-  if (menuEnhance) menuEnhance.addEventListener('click', () => {
+  if (menuEnhance) menuEnhance.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
     wrap.classList.remove('show-menu');
     enhancePrompt();
   });
 
   const menuUndo = doc.getElementById('menuUndo');
-  if (menuUndo) menuUndo.addEventListener('click', () => {
+  if (menuUndo) menuUndo.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
     wrap.classList.remove('show-menu');
     pokeActivity();
     const inputEl = lastEnhance ? (lastEnhance.inputRef && typeof lastEnhance.inputRef.deref === 'function' ? lastEnhance.inputRef.deref() : lastEnhance.inputRef) : null;
@@ -1317,14 +1319,16 @@ function initRocky(savedState) {
   }
 
   const menuHistory = doc.getElementById('menuHistory');
-  if (menuHistory) menuHistory.addEventListener('click', () => {
+  if (menuHistory) menuHistory.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
     wrap.classList.remove('show-menu');
     pokeActivity();
     showHistoryModal();
   });
 
   const menuDisable = doc.getElementById('menuDisable');
-  if (menuDisable) menuDisable.addEventListener('click', () => {
+  if (menuDisable) menuDisable.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
     wrap.classList.remove('show-menu');
     const hostname = window.location.hostname;
     if (!hostname) return;
@@ -1343,7 +1347,8 @@ function initRocky(savedState) {
   });
 
   const menuHome = doc.getElementById('menuHome');
-  if (menuHome) menuHome.addEventListener('click', () => {
+  if (menuHome) menuHome.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
     wrap.classList.remove('show-menu');
     stopRun();
     setState('running');
@@ -1445,7 +1450,8 @@ function initRocky(savedState) {
   }
 
   const menuSummarize = doc.getElementById('menuSummarize');
-  if (menuSummarize) menuSummarize.addEventListener('click', () => {
+  if (menuSummarize) menuSummarize.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
     wrap.classList.remove('show-menu');
     runSummarize();
   });
@@ -1551,7 +1557,8 @@ function initRocky(savedState) {
   }
 
   const menuFeed = doc.getElementById('menuFeed');
-  if (menuFeed) menuFeed.addEventListener('click', () => {
+  if (menuFeed) menuFeed.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
     wrap.classList.remove('show-menu');
     feedRocky();
   });
@@ -1568,7 +1575,8 @@ function initRocky(savedState) {
   const testApiKeyStatus = doc.getElementById('testApiKeyStatus');
 
   const menuSettings = doc.getElementById('menuSettings');
-  if (menuSettings) menuSettings.addEventListener('click', () => {
+  if (menuSettings) menuSettings.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
     wrap.classList.remove('show-menu');
     if (settingProvider) settingProvider.value = aiSettings.provider || 'builtin';
     // Hydrate the key field from the per-provider map first, falling back to legacy flat field
