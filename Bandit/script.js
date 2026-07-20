@@ -16,7 +16,7 @@ function initRocky(savedState) {
   // Fields missing from an older saved version fall back to these.
   const rockyDefaults = (window.RockyStorage && window.RockyStorage.DEFAULTS) || {
     xp: 0, level: 1, petName: 'Bandit', position: { x: null, y: null }, onboarded: false, settings: { size: 1 },
-    lastFedAt: 0, provider: 'builtin', apiKey: '', model: '', apiKeys: {}, enhanceStyle: 'structured', askPlaceholders: true, history: []
+    lastFedAt: 0, provider: 'builtin', apiKey: '', model: '', apiKeys: {}, enhanceStyle: 'structured', askPlaceholders: false, history: []
   };
   const hydrated = savedState || rockyDefaults;
 
@@ -322,7 +322,7 @@ function initRocky(savedState) {
   let lastFedAt = hydrated.lastFedAt || 0;
   let aiSettings = { provider: hydrated.provider || 'builtin', apiKey: hydrated.apiKey || '', model: hydrated.model || '', apiKeys: hydrated.apiKeys || {} };
   let enhanceStyle = hydrated.enhanceStyle || 'structured';
-  let askPlaceholders = hydrated.askPlaceholders !== false;
+  let askPlaceholders = hydrated.askPlaceholders === true; // default OFF — enable in settings
   let lastEnhance = null; // { inputRef, original } — lets the Undo menu restore pre-enhance text
   // Named copyHistory (not `history`) to avoid shadowing window.history.
   let copyHistory = Array.isArray(hydrated.history) ? hydrated.history : [];
@@ -352,7 +352,7 @@ function initRocky(savedState) {
   let runAnim = null;
   let isHovering = false;
   wrap.addEventListener('pointerenter', () => isHovering = true);
-  window.addEventListener('pointerout', () => isHovering = false, { signal });
+  wrap.addEventListener('pointerleave', () => isHovering = false);
 
   function setState(s) {
     wrap.classList.remove('alert', 'working', 'happy', 'sleeping', 'levelup', 'running', 'scooting', 'hopping');
@@ -709,6 +709,7 @@ function initRocky(savedState) {
   function askPlaceholderValues(text, placeholders, done) {
     let i = 0;
     let out = text;
+    let answering = false; // separate flag — can't set properties on a string primitive
 
     let cancelled = true;
 
@@ -719,16 +720,16 @@ function initRocky(savedState) {
     });
 
     const answer = (val) => {
-      if (out._answering) return; // prevent rapid double-clicks from skipping questions
-      out._answering = true;
+      if (answering) return; // prevent rapid double-clicks from skipping questions
+      answering = true;
       if (val) out = out.split('[' + placeholders[i] + ']').join(val);
       i++;
       if (i < placeholders.length) {
-        out._answering = false;
+        answering = false;
         renderQuestion();
       } else {
         cancelled = false;
-        delete out._answering;
+        answering = false;
         finish();
       }
     };
@@ -822,9 +823,52 @@ function initRocky(savedState) {
       return;
     }
 
-    const fluffRegex = /^(hi+|hello+|helo+|hey+|bye+|thanks+|thank you+|ok+|okay+)[.!?\s]*$/i;
-    if (fluffRegex.test(trimmedVal) || trimmedVal.length < 5) {
-      say("That's a bit too short for me to enhance! 🐾", 3000);
+    // --- MULTI-LAYER INPUT VALIDATION ---
+    // Reject inputs that aren't real prompts. Users get a specific, helpful
+    // message so they know WHAT to type, not just "too short".
+    const wordCount = trimmedVal.split(/\s+/).length;
+    const lower = trimmedVal.toLowerCase().replace(/[^a-z\s]/g, '').trim();
+
+    // Layer 1: Single words are never real prompts
+    if (wordCount === 1) {
+      say("One word isn't enough to enhance! 🐾<br><span style='opacity:.7'>Try: \"build a login page\" or \"write a blog about space\"</span>", 4500);
+      return;
+    }
+
+    // Layer 2: Greetings, farewells, reactions, filler — expanded list
+    const FLUFF_PATTERNS = [
+      // Greetings (with typo variants)
+      /^(h[ei]y+|hi+|hello+|helo+|hola|howdy|sup|wh?at'?s? ?up|yo+)\b/,
+      // Farewells
+      /^(bye+|good ?bye|see ?ya|later|cya|peace|adios)\b/,
+      // Gratitude / politeness
+      /^(thanks?|thank ?you|thx|ty|please|pls|welcome|np|no ?prob)\b/,
+      // Affirmatives / negatives
+      /^(ye[sp]?|yeah|yep|yup|nope?|nah|ok+|okay|sure|fine|alright|k+|kk+)$/,
+      // Reactions / filler
+      /^(lo+l+|lmao+|rof+l|hah+a*|heh+e*|hmm+|wow+|oh+|ah+|ugh+|meh|bruh|bro|dude|man|nice|cool|great|awesome|damn|dang|omg|wtf|idk|idc)$/,
+      // Profanity catch-all (common ones)
+      /\b(fuck|shit|ass|bitch|dick|crap|hell|damn)\b/,
+      // Nonsense / keyboard mashing (3+ repeated chars or random consonant strings)
+      /^([a-z])\1{3,}/,
+      /^[^aeiou\s]{5,}$/,
+    ];
+
+    if (FLUFF_PATTERNS.some(re => re.test(lower))) {
+      say("That's not something I can enhance! 🦝<br><span style='opacity:.7'>Give me a real request, like:<br>\"create a landing page\" or \"explain React hooks\"</span>", 5000);
+      return;
+    }
+
+    // Layer 3: Very short inputs (under 12 chars AND ≤2 words) — not enough substance
+    if (trimmedVal.length < 12 && wordCount <= 2) {
+      say("That's too short for me to work with! 🐾<br><span style='opacity:.7'>Add more detail — what do you want built/written/explained?</span>", 4500);
+      return;
+    }
+
+    // Layer 4: Pure conversational fluff (slightly longer but still not a prompt)
+    const CONVERSATIONAL = /^(how are you|what are you|who are you|are you|do you|can you|will you|i am|i'm|my name|what's your|tell me a joke|sing|dance)[.!?\s]*$/i;
+    if (CONVERSATIONAL.test(trimmedVal)) {
+      say("Hah, I'm flattered but I enhance prompts, not answer questions! 🦝<br><span style='opacity:.7'>Try: \"write a Python script that…\"</span>", 4500);
       return;
     }
 
@@ -845,7 +889,16 @@ function initRocky(savedState) {
 
       if (result.trim() === 'ERROR_GIBBERISH') {
         setState('idle');
-        say('Hmm, that doesn\'t look like a real coding prompt. Can you be more specific? 🤔', 4000);
+        say('Hmm, that doesn\'t look like a real prompt. Can you be more specific? 🤔', 4000);
+        return;
+      }
+
+      // Reject suspiciously short AI outputs — a good enhanced prompt is never
+      // just a few words. This catches models returning "OK" or echoing the input.
+      const resultWords = result.trim().split(/\s+/).length;
+      if (resultWords < 8) {
+        setState('idle');
+        say('The AI gave a weird response — try again or rephrase your prompt 🤔', 4000);
         return;
       }
 
@@ -1027,6 +1080,7 @@ function initRocky(savedState) {
     h.className = 'heart';
     h.replaceChildren(...new DOMParser().parseFromString('<div style="width:4px;height:4px;background:transparent;box-shadow:4px 0 #ff4b4b,12px 0 #ff4b4b,0 4px #ff4b4b,4px 4px #ff4b4b,8px 4px #ff4b4b,12px 4px #ff4b4b,16px 4px #ff4b4b,4px 8px #ff4b4b,8px 8px #ff4b4b,12px 8px #ff4b4b,8px 12px #ff4b4b"></div>', 'text/html').body.childNodes);
     const rect = pet.getBoundingClientRect();
+    h.style.position = 'fixed';
     h.style.left = (rect.left + rect.width / 2 - 10 + (Math.random() * 40 - 20)) + 'px';
     h.style.top = (rect.top - 10) + 'px';
     docBody.appendChild(h);
@@ -1273,16 +1327,19 @@ function initRocky(savedState) {
   if (menuDisable) menuDisable.addEventListener('click', () => {
     wrap.classList.remove('show-menu');
     const hostname = window.location.hostname;
-    const currentList = s.disabledSites || [];
-    if (!currentList.includes(hostname)) {
-      s.disabledSites = [...currentList, hostname];
-      store.saveState({ disabledSites: s.disabledSites }, { immediate: true });
-      say('ZZZ... (disabled on this site)');
-      setTimeout(() => {
-        if (shadowHost) shadowHost.remove();
-        else window.location.reload();
-      }, 1500);
-    }
+    if (!hostname) return;
+    (async () => {
+      const currentState = window.RockyStorage ? await window.RockyStorage.loadState() : {};
+      const currentList = currentState.disabledSites || [];
+      if (!currentList.includes(hostname)) {
+        persist({ disabledSites: [...currentList, hostname] }, { immediate: true });
+        say('ZZZ... (disabled on this site)');
+        setTimeout(() => {
+          if (shadowHost) shadowHost.remove();
+          else window.location.reload();
+        }, 1500);
+      }
+    })().catch(err => console.warn('Bandit: disable failed', err));
   });
 
   const menuHome = doc.getElementById('menuHome');
@@ -1316,9 +1373,9 @@ function initRocky(savedState) {
       isFetching = false;
       root.style.transition = '';
       persist({ position: { x: root.offsetLeft, y: root.offsetTop } });
-      // Force sleep and clear activity timer so he stays there
+      // Force sleep — override last activity so the sleep interval doesn't wake him
       setState('sleeping');
-      clearTimeout(activityTimer);
+      lastActivity = Date.now() + 999999; // prevent sleepInterval from waking him
       
       const oldHouse = doc.querySelector('.bandit-house');
       if (oldHouse) oldHouse.remove();
@@ -1514,7 +1571,8 @@ function initRocky(savedState) {
   if (menuSettings) menuSettings.addEventListener('click', () => {
     wrap.classList.remove('show-menu');
     if (settingProvider) settingProvider.value = aiSettings.provider || 'builtin';
-    if (settingApiKey) settingApiKey.value = aiSettings.apiKey || '';
+    // Hydrate the key field from the per-provider map first, falling back to legacy flat field
+    if (settingApiKey) settingApiKey.value = (aiSettings.apiKeys && aiSettings.apiKeys[aiSettings.provider]) || aiSettings.apiKey || '';
     if (settingModel) settingModel.value = aiSettings.model || '';
     if (settingStyle) settingStyle.value = enhanceStyle;
     if (settingAskPlaceholders) settingAskPlaceholders.checked = askPlaceholders;
@@ -1547,8 +1605,7 @@ function initRocky(savedState) {
   const resetDisabledStatus = doc.getElementById('resetDisabledStatus');
   if (resetDisabledSites) {
     resetDisabledSites.addEventListener('click', () => {
-      s.disabledSites = [];
-      store.saveState({ disabledSites: [] }, { immediate: true });
+      persist({ disabledSites: [] }, { immediate: true });
       if (resetDisabledStatus) {
         resetDisabledStatus.textContent = 'Cleared!';
         setTimeout(() => { resetDisabledStatus.textContent = ''; }, 2000);
@@ -1703,6 +1760,7 @@ Let me know if you need any adjustments!`;
     const apple = document.createElement('div');
     apple.className = 'fetch-apple';
     apple.innerText = '🍎';
+    apple.style.position = 'fixed';
     apple.style.left = (e.clientX - 12) + 'px';
     apple.style.top = (e.clientY - 12) + 'px';
     docBody.appendChild(apple);
@@ -1843,10 +1901,17 @@ Let me know if you need any adjustments!`;
   })();
 
   if (!hydrated.onboarded) {
+    // Multi-step onboarding for new users — teaches them what Bandit does
     setTimeout(() => {
-      say(`hi, I'm <b>${escapeHTML(petName)}</b> 🦝<br>right-click me for the menu!`, 4000);
-      persist({ onboarded: true });
+      say(`hi, I'm <b>${escapeHTML(petName)}</b> 🦝<br>I make your AI prompts way better!`, 4500);
     }, 700);
+    setTimeout(() => {
+      say('Type a rough idea in any text box,<br>then press <b>Ctrl+Shift+E</b> ⚡<br>I\'ll turn it into a pro prompt!', 6000);
+    }, 5500);
+    setTimeout(() => {
+      say('<b>Right-click me</b> for the full menu:<br>✨ Enhance · 📋 Summarize · ⚙️ Settings', 5000);
+      persist({ onboarded: true });
+    }, 12000);
   } else if (Math.random() < 0.35) {
     // Returning user: occasional time-of-day hello, kept rare so it never nags.
     setTimeout(() => {
@@ -1864,6 +1929,9 @@ Let me know if you need any adjustments!`;
         if (state !== 'idle') return;
         const dummyInput = {
           value: msg.text,
+          tagName: 'TEXTAREA',
+          isContentEditable: false,
+          isConnected: false,
           focus: () => { },
           setAttribute: () => { },
           removeAttribute: () => { },

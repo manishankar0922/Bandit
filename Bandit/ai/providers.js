@@ -5,7 +5,7 @@
   const PROVIDERS = {
     anthropic: { endpoint: 'https://api.anthropic.com/v1/messages', auth: 'x-api-key', model: 'claude-haiku-4-5-20251001', format: 'anthropic' },
     openai:    { endpoint: 'https://api.openai.com/v1/chat/completions', auth: 'bearer', model: 'gpt-4o-mini', format: 'openai' },
-    gemini:    { endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', auth: 'query', model: 'gemini-2.0-flash', format: 'gemini' },
+    gemini:    { endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent', auth: 'query', model: 'gemini-2.0-flash', format: 'gemini' },
     groq:      { endpoint: 'https://api.groq.com/openai/v1/chat/completions', auth: 'bearer', model: 'llama-3.3-70b-versatile', format: 'openai' }, // Groq speaks the OpenAI chat-completions shape
   };
 
@@ -28,6 +28,8 @@
     const tokens = maxTokens || 500;
 
     let url = cfg.endpoint;
+    // Gemini embeds the model name in the URL path — swap the placeholder.
+    if (cfg.format === 'gemini') url = url.replace('{MODEL}', encodeURIComponent(useModel));
     const headers = { 'content-type': 'application/json' };
 
     if (cfg.auth === 'x-api-key') {
@@ -59,6 +61,7 @@
       body = {
         model: useModel,
         max_tokens: tokens,
+        max_completion_tokens: tokens, // newer OpenAI models prefer this field
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userText },

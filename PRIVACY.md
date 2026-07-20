@@ -1,8 +1,17 @@
 # Privacy Policy — Bandit (Browser Extension)
 
-**Last updated:** July 16, 2026
+**Last updated:** July 20, 2026
 
-Bandit is a browser extension that enhances your prompts and summarizes AI chats. This policy explains what data Bandit accesses, how it's handled, and what gets sent where.
+Bandit is a browser extension that enhances your AI prompts and summarizes conversations. This policy explains what data Bandit accesses, how it's handled, and what gets sent where — in plain language.
+
+---
+
+## The Short Version
+
+- **We have no servers.** Nothing goes to us — ever.
+- **Your API keys stay in your browser.** Stored in `browser.storage.local`, never transmitted to anyone except the AI provider YOU chose.
+- **AI requests go directly to the provider.** No middleman, no proxy, no logging.
+- **Uninstall = everything deleted.** No traces left behind.
 
 ---
 
@@ -14,6 +23,7 @@ Bandit is a browser extension that enhances your prompts and summarizes AI chats
 - ❌ No data sent to our servers (we don't operate any)
 - ❌ No browsing history collection
 - ❌ No personal information collection
+- ❌ No passive page monitoring or background scanning
 
 ## Data Stored Locally
 
@@ -24,13 +34,20 @@ Bandit stores the following **only on your device** using `browser.storage.local
 | Pet name, XP, level | Game state for the desktop pet |
 | Position on screen | Remembers where you dragged Bandit |
 | AI provider selection | Which AI service you chose (e.g., "anthropic", "gemini") |
-| API key(s) | Your own API keys, saved per-provider for failover |
+| API key(s) | Your own API keys, saved per-provider for automatic failover |
 | Model override | Optional model name if you set one |
-| Enhance style preference | Your chosen style (Structured/Concise/Detailed) |
+| Enhance style preference | Your chosen style (Structured / Concise / Detailed) |
+| Placeholder preference | Whether to ask follow-up questions after enhancement (off by default) |
 | Last 10 results | History of your enhanced prompts and summaries |
 | Daily streak counter | Tracks consecutive visit days for XP bonus |
+| Disabled sites list | Hostnames where you chose to hide Bandit |
+| Version tracking | Detects extension updates for new-feature notifications |
 
 **All of this stays on your machine.** Uninstalling the extension deletes it.
+
+## On-Device AI (Gemini Nano)
+
+When available, Bandit can use Chrome's built-in on-device AI model (Gemini Nano). This processing happens **entirely on your device** — no data is sent over the network. On-device AI is only attempted when you have no cloud API keys configured.
 
 ## Data Sent to Third-Party AI Providers
 
@@ -47,18 +64,17 @@ When you trigger **Enhance** or **Summarize**, Bandit sends data to the AI provi
 
 1. **You control which provider receives your data.** Bandit supports Anthropic (Claude), OpenAI, Google Gemini, and Groq. You choose which one(s) to use by providing your own API key.
 2. **Requests go directly to the provider's official API endpoint** — never through any intermediary server.
-3. **API calls happen only from the extension's background worker** — never from the host page's JavaScript context. This means the host website cannot intercept or observe the request.
+3. **API calls happen only from the extension's background service worker** — never from the host page's JavaScript context. This means the host website cannot intercept or observe the request.
 4. **No data is cached or logged.** The AI response is displayed/inserted and that's it. Debug mode (opt-in, per-site) logs only the provider name and response time — never prompt text or API keys.
 5. **Failover behavior:** If you save keys for multiple providers, Bandit may try a second provider if the first fails. This means your prompt could be sent to more than one provider in a single request cycle. You control this by only saving keys for providers you trust.
 
 ### AI Output Disclaimer
 
-**The AI-generated output (enhanced prompts, summaries, and placeholder suggestions) is produced by third-party AI models and may contain:**
+**The AI-generated output (enhanced prompts and summaries) is produced by third-party AI models and may contain:**
 - Inaccurate or irrelevant suggestions
-- Placeholder questions that don't match your original context
 - Errors, hallucinations, or inappropriate content
 
-**Bandit does not guarantee the accuracy, relevance, or quality of any AI-generated output.** The enhanced prompt is a suggestion — always review it before submitting to your AI coding tool. You can undo any enhancement via the right-click menu → ↩️ Undo.
+**Bandit does not guarantee the accuracy, relevance, or quality of any AI-generated output.** The enhanced prompt is a suggestion — always review it before submitting. You can undo any enhancement via the right-click menu → ↩️ Undo, or view past results in History.
 
 ## Page Content Access
 
@@ -82,6 +98,8 @@ Bandit's entire UI lives inside a **closed shadow DOM**. This means:
 | Permission | Why |
 |-----------|-----|
 | `storage` | Save pet state, API keys, and preferences locally |
+| `contextMenus` | Add "Enhance with Bandit ✨" to the browser's right-click menu |
+| `clipboardWrite` | Copy enhanced prompts and summaries to your clipboard |
 | `host_permissions: https://api.anthropic.com/*` | Send AI requests to Anthropic Claude |
 | `host_permissions: https://api.openai.com/*` | Send AI requests to OpenAI |
 | `host_permissions: https://generativelanguage.googleapis.com/*` | Send AI requests to Google Gemini |

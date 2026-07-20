@@ -19,7 +19,7 @@
     apiKeys: {}, // per-provider saved keys — enables automatic failover
     model: '', // optional override; empty = provider's default model
     enhanceStyle: 'structured', // 'structured' | 'concise' | 'detailed'
-    askPlaceholders: true, // after enhance, ask the user to fill [placeholders]
+    askPlaceholders: false, // off by default — new users find it confusing. Enable in settings.
     streak: 0, // consecutive days Rocky has been visited
     lastVisitDay: '', // 'YYYY-MM-DD' of the last counted visit
     history: [], // last 10 results: { type: 'enhance'|'summary', text, at }

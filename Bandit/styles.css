@@ -50,9 +50,8 @@
   /* ---------- Rocky ---------- */
   #rocky-root{
     all:initial;
-    font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-    color:var(--text);
     font-family:var(--font-mono);
+    color:var(--text);
     font-size:14px;
     line-height:1.5;
     position:fixed;z-index:2147483647;right:32px;bottom:110px;
@@ -156,10 +155,10 @@
   }
   
   /* Fetch & Petting & Startle Interactions */
-  .fetch-apple { position: absolute; font-size: 24px; user-select: none; pointer-events: none; animation: drop-in 0.4s cubic-bezier(0.3, 1.4, 0.5, 1); z-index: 1000; }
+  .fetch-apple { position: fixed; font-size: 24px; user-select: none; pointer-events: none; animation: drop-in 0.4s cubic-bezier(0.3, 1.4, 0.5, 1); z-index: 1000; }
   @keyframes drop-in { 0% { transform: translateY(-40px) scale(0); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
   
-  .heart { position: absolute; color: #ff4b4b; font-size: 16px; pointer-events: none; animation: float-heart 1s ease-out forwards; z-index: 100; }
+  .heart { position: fixed; color: #ff4b4b; font-size: 16px; pointer-events: none; animation: float-heart 1s ease-out forwards; z-index: 100; }
   @keyframes float-heart { 0% { opacity: 0; transform: translateY(0) scale(0.5); } 20% { opacity: 1; transform: translateY(-10px) scale(1.2); } 100% { opacity: 0; transform: translateY(-30px) scale(1); } }
   
   .pet-wrap.startled .pet { animation: jump-startle 0.4s cubic-bezier(0.3, 1.4, 0.5, 1); }

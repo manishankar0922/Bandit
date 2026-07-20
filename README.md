@@ -1,178 +1,200 @@
-# 🦝 Bandit — Desktop Pet & AI Prompt Companion
+<div align="center">
 
-![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
-[![Firefox Add-on](https://img.shields.io/badge/Firefox-Get_Add--on-FF7139?logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/en-US/firefox/addon/bandit/)
-![Chrome / Edge](https://img.shields.io/badge/Chrome%20%2F%20Edge-Coming%20Soon-4285F4?logo=googlechrome&logoColor=white)
-![AI Providers](https://img.shields.io/badge/AI-Nano%20%C2%B7%20Claude%20%C2%B7%20OpenAI%20%C2%B7%20Gemini%20%C2%B7%20Groq-f5a524)
-![No tracking](https://img.shields.io/badge/telemetry-none-2ea44f)
-![Version](https://img.shields.io/badge/version-2.1-lightgrey)
+# 🦝 Bandit — AI Prompt Companion & Desktop Pet
 
-A pixel-art raccoon that lives on every page you browse, turns your rough prompts into engineered ones, and summarizes AI chats into portable context briefs. Built as a cross-browser WebExtension (Manifest V3). Now with ChatGPT scraping support and keyboard shortcuts.
+[![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue?style=for-the-badge)](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
+[![Firefox Add-on](https://img.shields.io/badge/Firefox-Get_Add--on-FF7139?logo=firefoxbrowser&logoColor=white&style=for-the-badge)](https://addons.mozilla.org/en-US/firefox/addon/bandit/)
+[![Chrome / Edge](https://img.shields.io/badge/Chrome%20%2F%20Edge-Coming%20Soon-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge)](#-installation--availability)
+[![AI Providers](https://img.shields.io/badge/AI-Nano%20·%20Claude%20·%20OpenAI%20·%20Gemini%20·%20Groq-f5a524?style=for-the-badge)](#-features)
+[![No telemetry](https://img.shields.io/badge/telemetry-none-2ea44f?style=for-the-badge)](PRIVACY.md)
+[![Version](https://img.shields.io/badge/version-2.3-lightgrey?style=for-the-badge)](#)
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
-> Feed him trash prompts. He gives back treasure.
+**Feed him trash prompts. He gives back treasure.**
 
----
+*A pixel-art raccoon that lives in your browser — enhances your AI prompts, summarizes complex chats, and levels up as you use it.*
 
-## Table of Contents
-
-1. [What Bandit Does](#what-bandit-does)
-2. [With vs. Without Prompting](#with-vs-without-prompting)
-3. [Availability](#availability)
-4. [AI Setup](#ai-setup)
-5. [Interactions Guide](#interactions-guide)
-6. [Leveling](#leveling)
-7. [Privacy & Security](#privacy--security)
-8. [Project Structure](#project-structure)
-9. [Debugging](#debugging)
-10. [Deployment](DEPLOYMENT.md)
-11. [Contributing](#contributing)
+</div>
 
 ---
 
-## What Bandit Does
+## The Problem
 
-| Feature | What it means |
-|---|---|
-| ✨ **Enhance** | Rewrites the prompt in any text box into a "God-Tier", engineered prompt using advanced AI psychology (personas, chain-of-thought). Universal across all domains (Code, Writing, Design). Trigger via double-click, right-click menu, or **Ctrl+Shift+E** |
-| 🖱️ **Context Menu** | Select *any text on any webpage*, right-click -> "Enhance with Bandit ✨". The God-Tier prompt is instantly generated and copied to your clipboard! |
-| 📋 **Summarize** | Scrapes the visible AI chat (claude.ai, gemini.google.com, chatgpt.com, or any page) into a 250-word context brief, copied to your clipboard |
-| ↩️ **Undo** | Restores your original text after an Enhance |
-| 🍪 **Feed** | +5 XP snack with a 60s cooldown — pure game mechanic, no AI |
-| 🎮 **Pet sim** | He wanders, sleeps, plays fetch (double-click anywhere), gets petted, watches your cursor, and levels up with visible accessories |
-| 📜 **History** | Last 10 Enhance/Summarize results with one-click re-copy and clear-all |
-| 🔔 **Smart Updates** | When the extension auto-updates in the background, Bandit will excitedly let you know about his new features! |
+You type `"create login page please with backedn"` into ChatGPT. You get a generic, incomplete response with missing error handling, no validation, and hardcoded credentials. You spend 20 minutes going back and forth fixing it.
 
+**Bandit fixes this in one keystroke.**
 
-Everything persists — XP, level, name, position, settings — and syncs live across all open tabs.
+---
 
+## 🚀 See the Difference
 
-## With vs. Without Prompting
+<table>
+<tr>
+<td width="50%">
 
-What you type vs. what the AI coding tool actually receives after Bandit's Enhance:
-
-**Without Bandit** (what you typed):
+**❌ What you type (without Bandit):**
 
 ```
 create login page please with backend
 ```
 
-**With Bandit** (Structured style):
+</td>
+<td width="50%">
 
-```
-GOAL: Build a working login page with backend authentication.
-CONTEXT: Web app using [your stack]. No design system specified — use clean, minimal styling.
-REQUIREMENTS:
-1. Login form with email + password fields, labeled, with client-side validation.
-2. Backend auth endpoint that verifies credentials and returns a session/token;
-   wrong credentials show an inline error, never a crash.
-3. Loading state on submit (disabled button + spinner); empty-field submission
-   blocked with a clear message.
-4. Responsive layout: usable at 360px and 1440px widths.
-5. No hardcoded credentials or secrets; config via environment variables.
-OUTPUT: A functional login page wired to a working auth endpoint, ready to run.
-```
+**✅ What the AI receives (with Bandit):**
 
-The enhance prompts follow established prompt-engineering practice: role anchoring, a silent analyze-before-writing process, one few-shot example to pin the format, explicit negative rules (never invent details, never bracket-spam placeholders), and verifiable requirements. See [`Bandit/ai/prompts.js`](Bandit/ai/prompts.js).
+> **Role:** Act as a senior full-stack engineer specializing in authentication systems.
+>
+> **Objective:** Build a production-ready login page with backend authentication.
+>
+> **Context:** Web app with clean, minimal styling. No design system specified.
+>
+> **Rules & Constraints:**
+> - Login form with email + password fields, labeled, with client-side validation.
+> - Backend auth endpoint that verifies credentials and returns a session/token; wrong credentials show an inline error, never a crash.
+> - Loading state on submit (disabled button + spinner); empty-field submission blocked.
+> - Responsive layout: usable at 360px and 1440px widths.
+> - No hardcoded credentials; config via environment variables.
+>
+> **Process:** Think step-by-step about the security model before writing code.
 
-## Availability
+</td>
+</tr>
+</table>
 
-**Currently Available For:**
-- **Firefox:** Download it directly from the [Mozilla Add-ons Store](https://addons.mozilla.org/en-US/firefox/addon/bandit/).
+One keystroke. **Ctrl+Shift+E.** That's it.
 
-**Coming Soon:**
-Bandit is currently being optimized for cross-platform support. In future updates, Bandit will be officially available on:
-- Google Chrome & Microsoft Edge
-- Other popular browsers
-- Desktop IDEs (VS Code, Cursor, etc.)
+---
 
-## AI Setup
+## ✨ Features
 
-Bandit tries AI in this order:
+| Feature | Description |
+|:---|:---|
+| 🪄 **Prompt Enhancement** | Rewrites rough ideas into structured, persona-driven prompts using chain-of-thought engineering. Three styles: Structured, Concise, or Detailed. |
+| 🖱️ **Universal Context Menu** | Select any text on any webpage → right-click → "Enhance with Bandit ✨" → engineered prompt copied to clipboard. |
+| 📋 **Chat Summarization** | Scrapes visible AI chats (ChatGPT, Claude, Gemini) into concise context briefs you can paste into a new conversation. |
+| 🛡️ **Smart Input Guard** | Multi-layer validation rejects greetings, single words, profanity, and nonsense — only real prompts get sent to the AI. |
+| ⚡ **Instant Speed** | When you have cloud API keys, Bandit skips on-device AI entirely and goes straight to your provider. Sub-second enhancement. |
+| 🔒 **BYOK (Bring Your Own Key)** | Use Chrome's free on-device Gemini Nano, or plug in your own keys for Claude, OpenAI, Gemini, or Groq. |
+| 🔄 **Automatic Failover** | If your primary provider hits a rate limit, Bandit silently falls back to your next configured provider. |
+| 📜 **History & Undo** | Last 10 enhancements saved. One-click copy. Instant undo to restore your original text. |
+| 🎮 **Interactive Pet** | Bandit wanders, sleeps, chases apples, does spin tricks, and levels up with visual accessories. |
+| 🎓 **Guided Onboarding** | New users get a 3-step walkthrough teaching them exactly what Bandit does and how to use it. |
 
-1. **Chrome built-in AI (Gemini Nano)** — free, on-device, no key. Used automatically when available.
-2. **Your own API key (BYOK)** — set in *right-click Bandit → ⚙️ Settings*.
+---
 
-| Provider | Key prefix | Default model | Free tier |
-|---|---|---|---|
-| Anthropic Claude | `sk-ant-` | claude-haiku | — |
-| OpenAI | `sk-` / `sk-proj-` | gpt-4o-mini | — |
-| Google Gemini | *(none)* | gemini-2.0-flash | ✅ daily quota |
-| Groq | `gsk_` | llama-3.3-70b | ✅ generous, fastest |
+## 📦 Installation & Availability
 
-Transient failures (network blips, rate limits, 5xx) retry once automatically before you ever see an error.
+<table>
+<tr>
+<td>🦊 <b>Firefox</b></td>
+<td><a href="https://addons.mozilla.org/en-US/firefox/addon/bandit/">Download from Mozilla Add-ons Store</a></td>
+</tr>
+<tr>
+<td>🌐 <b>Chrome / Edge</b></td>
+<td>Under active development. Coming soon.</td>
+</tr>
+</table>
 
-**Load balancing / failover:** keys are saved *per provider* — switch the dropdown, paste a key, save, repeat. If your primary provider fails (quota exhausted, outage), Bandit automatically fails over to the next provider you have a key for, in the same request. You only see an error when *every* saved provider fails.
+---
 
-Pasting a key **auto-selects the matching provider** from its prefix. The **Test key** button makes a tiny real call and shows ✅/❌ with the actual error. An optional Model field overrides the default per provider.
+## 🎮 How to Use Bandit
 
-## Interactions Guide
+| Action | What Happens |
+|:---|:---|
+| **Ctrl+Shift+E** (Cmd+Shift+E on Mac) | Instantly enhance the focused text box. |
+| **Double-click Bandit** | Same as above — enhance whatever text box has focus. |
+| **Right-click Bandit** | Open the full menu: Enhance, Undo, Summarize, History, Settings. |
+| **Select text → Right-click page** | "Enhance with Bandit ✨" copies the enhanced version to clipboard. |
+| **Type >7 chars in a text box** | Bandit perks up and offers to enhance. |
+| **Drag & Drop** | Move Bandit anywhere. He remembers his spot across sessions. |
+| **Double-click empty space** | Drop an apple for Bandit to fetch (+3 XP). |
+| **Rub cursor over him** | Pet him (+1 XP, pixel hearts). |
+| **Hold-click (600ms)** | He does a spin trick. 30% chance of +2 XP. |
+| **Idle 20 seconds** | He falls asleep. Any click wakes him. |
 
-| Action | Result |
-|---|---|
-| Type >7 chars in a text box | Bandit perks up and offers to enhance |
-| **Double-click Bandit** | Enhance the focused/visible text box |
-| **Right-click Bandit** | Menu: Enhance Prompt · Undo · Summarize Chat · Disable on this site <br> **➕ More...** (History · Go Home · Feed Bandit · Settings) |
-| **Extension Icon Click** | Instantly toggles Bandit on/off for the current website |
-| **Ctrl+Shift+E** (or Cmd+Shift+E on Mac) | Enhance the focused text box instantly — no click needed |
-| **📜 History** | Last 10 Enhance/Summarize results — click any to re-copy, or clear all |
-| **🏠 Go Home** | Bandit spawns a tent (🏕️) in the bottom-right corner and goes to sleep, staying completely out of your way |
-| **Drag Bandit** | Move him anywhere (position persists; he can't be stranded off-screen) |
-| **Double-click empty page space** | Drop an apple — he runs over and eats it (+3 XP) |
-| Rub cursor over him | Hearts + happy eyes (+1 XP, rate-limited) |
-| **Press & hold Bandit (600ms)** | Spin trick 🌀 (30% chance of +2 XP) |
-| Visit daily | 🔥 Streak bonus: +5 XP on every consecutive day |
-| Idle 20s | He falls asleep; any activity startles him awake |
-| Cursor anywhere | His pupils follow it |
+---
 
-## Leveling
+## 📈 Leveling System
 
 | Level | XP | Unlock |
-|---|---|---|
-| 1 | 0 | Classic Bandit |
-| 2 | 20 | 😎 Sunglasses |
-| 3 | 50 | 🧣 Red scarf |
+|:---:|:---:|:---|
+| 1 | 0 | Classic Bandit 🦝 |
+| 2 | 20 | 😎 Cool Sunglasses |
+| 3 | 50 | 🧣 Cozy Red Scarf |
 | 4 | 100 | 👑 Crown — *ALL HAIL THE TRASH KING* |
 
-XP: Enhance +10 · Summarize +15 · Feed +5 · Fetch +3 · Petting +1.
+**XP Sources:** Enhance (+10) · Summarize (+15) · Feed (+5) · Fetch apple (+3) · Petting (+1) · Daily streak (+5) · Spin trick (+2)
 
-## Privacy & Security
+---
 
-> **Full privacy policy:** [PRIVACY.md](PRIVACY.md)
+## 🏗️ Architecture
 
-- Your API key is stored **only** in `chrome.storage.local` on your machine, and is sent **only** to your chosen provider's official endpoint, from the extension's background worker — never from page context, never to anyone else.
-- Bandit's UI lives in a **closed shadow DOM** — host-page scripts cannot reach inside it (e.g., to read the API-key field in the settings modal).
-- All provider/page-derived text is HTML-escaped before rendering in Bandit's bubbles — a malicious error string can't inject markup.
-- Nothing is logged in normal operation. Debug mode logs provider name + latency only — **never** prompt text or keys.
-- No analytics, no tracking, no external servers of ours.
-- Page content is read only when *you* trigger Enhance (the text box) or Summarize (visible chat).
-
-### AI Output Disclaimer
-
-**Bandit's enhanced prompts, summaries, and placeholder suggestions are generated by third-party AI models.** They may be inaccurate, irrelevant, or miss context. Always review the output before using it. You can undo any enhancement via the menu → ↩️ Undo.
-
-## Project Structure
+Zero dependencies. Pure vanilla JavaScript. Every architectural decision prioritizes **security** and **speed**.
 
 ```
 Bandit/
-├── manifest.json        # MV3, cross-browser (gecko id + host_permissions)
-├── content.js           # Injects Bandit into pages via Shadow DOM host
-├── script.js            # Pet behavior, drag physics, XP, menu, settings
-├── storage.js           # Single-key persistent state, debounced, cross-tab sync
-├── background.js        # Service worker/event page — the only place keys live
-├── styles.css           # Pet + UI styles (:root,:host for shadow DOM)
-├── index.html           # Standalone demo page + injected pet markup
+├── manifest.json        # MV3 config, permissions, cross-browser (Chrome + Firefox)
+├── content.js           # Shadow DOM injection — closed mode, host-page isolated
+├── script.js            # Pet engine: physics, XP, drag, animations, input validation
+├── storage.js           # State persistence + cross-tab sync via chrome.storage
+├── background.js        # Service worker: secure API routing, failover chain, retries
+├── styles.css           # Vanilla CSS, scoped to shadow root, prefers-reduced-motion
+├── index.html           # Settings modal, pet DOM structure, demo page
 └── ai/
-    ├── pipeline.js      # rockyAIPipeline(): Nano first → BYOK fallback
-    ├── providers.js     # 4-provider registry, 3 format adapters
-    └── prompts.js       # Enhance (3 styles) + Summarize system prompts
+    ├── pipeline.js      # Smart routing: BYOK-first when keys exist, Nano fallback
+    ├── providers.js     # Adapters for Anthropic, OpenAI, Gemini, Groq APIs
+    └── prompts.js       # Prompt engineering templates with output quality guards
 ```
 
-## Debugging
+### Key Technical Decisions
 
-- On any page, set `localStorage.rocky_debug = "1"` in DevTools → console logs show which provider handled each call and latency.
-- Load failures show a red banner bottom-right with the actual error — no DevTools needed.
-- Background worker showing **Stopped** in `about:debugging` is normal MV3 idle behavior; it wakes on the next message.
+| Decision | Rationale |
+|:---|:---|
+| **Closed Shadow DOM** | Host-page scripts can't access Bandit's DOM — API key input fields are invisible to page JS. |
+| **Background-only API calls** | API keys never enter the content script context. The host page has zero access to credentials. |
+| **Native setter injection** | Uses `HTMLInputElement.prototype.value.set()` + synthetic events to safely inject text into React/ProseMirror editors without corrupting framework state. |
+| **Smart pipeline routing** | If BYOK keys exist, on-device Nano is skipped entirely — saves 5–30 seconds per call. |
+| **Multi-layer input validation** | 4-layer filter (single word → fluff/profanity → length → conversational) blocks garbage before it hits the AI. |
+| **Per-provider key storage** | Each provider's key is stored independently, enabling automatic failover with a single retry + 800ms backoff. |
+| **Debounced persistence** | State writes are batched (300ms debounce) to avoid thrashing `chrome.storage`. Drag positions flush on `pointerup` only. |
 
-## Contributing
+---
 
-**Note:** I do not accept Pull Requests (PRs) from anyone without explicit prior permission. This repository is provided for transparency and open-source visibility, but it is currently maintained as a solo project. Please do not submit pull requests.
+## 🛡️ Privacy & Security
+
+Security isn't an afterthought — it's the architecture.
+
+| Principle | Implementation |
+|:---|:---|
+| **Zero telemetry** | No analytics, no tracking, no external servers. We don't operate any infrastructure. |
+| **Local-only storage** | API keys and all user data live exclusively in `browser.storage.local`. |
+| **Isolated execution** | API requests fire from the background service worker only — never from the host page context. |
+| **Closed Shadow DOM** | Host-page scripts cannot reach into Bandit's UI or read the API key input field. |
+| **HTML escaping** | All AI outputs and error messages are sanitized via `escapeHTML()` before rendering. |
+| **No passive scanning** | Page content is read only when YOU trigger Enhance or Summarize — never in the background. |
+
+> **AI Output Disclaimer:** Enhanced prompts and summaries are generated by third-party AI models. Always review the output before using it.
+
+📄 [Full Privacy Policy](PRIVACY.md)
+
+---
+
+## 🤝 Contributing
+
+This repository is provided for transparency and as an open-source portfolio piece demonstrating production-grade browser extension architecture.
+
+**Please note:** This is maintained as a solo project. Pull requests are not accepted without explicit prior permission. Feel free to fork, explore, and draw inspiration.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+<div align="center">
+<br>
+<i>Built with ❤️ for better prompting and happier browsing.</i>
+<br><br>
+<b>© 2026 Manishankar</b>
+</div>

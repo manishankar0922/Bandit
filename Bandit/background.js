@@ -1,20 +1,4 @@
-// MV3 background: the ONLY place that ever sees the user's API key or talks
-// to an AI provider. Content scripts (script.js / ai/pipeline.js) message
-// this worker; it never talks back to the page directly. Cross-origin fetch
-// here bypasses page CSP/CORS because the target domains are declared in
-// host_permissions (see ai/providers.js for the Anthropic-specific note on
-// why no browser-access header is needed).
-//
-// Loaded two different ways depending on browser (see manifest.json):
-//  - Chrome: background.service_worker loads this file ALONE, in a real
-//    ServiceWorker with no window/document — importScripts() pulls in
-//    storage.js/ai/providers.js into this same scope.
-//  - Firefox: background.scripts loads storage.js, then ai/providers.js,
-//    then this file, in order, into one shared background-page scope (an
-//    old-style event page, not a real Worker) — by the time this file runs,
-//    RockyStorage/RockyProviders already exist and importScripts (a
-//    Worker-only API that doesn't exist on a page) is neither available nor
-//    needed.
+
 const api = globalThis.browser ?? globalThis.chrome;
 if (typeof self.RockyStorage === 'undefined' || typeof self.RockyProviders === 'undefined') {
   if (typeof importScripts === 'function') {
