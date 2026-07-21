@@ -83,6 +83,7 @@
       })(),
       model: typeof s.model === 'string' ? s.model : (legacyAI && typeof legacyAI.model === 'string' ? legacyAI.model : DEFAULTS.model),
       enhanceStyle: KNOWN_STYLES.includes(s.enhanceStyle) ? s.enhanceStyle : DEFAULTS.enhanceStyle,
+      enhanceTone: KNOWN_TONES.includes(s.enhanceTone) ? s.enhanceTone : DEFAULTS.enhanceTone,
       askPlaceholders: typeof s.askPlaceholders === 'boolean' ? s.askPlaceholders : DEFAULTS.askPlaceholders,
       streak: (typeof s.streak === 'number' && Number.isFinite(s.streak) && s.streak >= 0) ? s.streak : DEFAULTS.streak,
       lastVisitDay: typeof s.lastVisitDay === 'string' ? s.lastVisitDay : DEFAULTS.lastVisitDay,

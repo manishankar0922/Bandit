@@ -883,7 +883,7 @@ function initRocky(savedState) {
     const buildSys = window.RockyPrompts && window.RockyPrompts.buildSystemPrompt;
     const ENHANCE_SYSTEM = buildSys
       ? buildSys(enhanceStyle, enhanceTone)
-      : (styles[enhanceStyle] || (window.RockyPrompts ? window.RockyPrompts.ENHANCE_SYSTEM : ''));
+      : ((window.RockyPrompts && window.RockyPrompts.ENHANCE_SYSTEMS || {})[enhanceStyle] || (window.RockyPrompts ? window.RockyPrompts.ENHANCE_SYSTEM : ''));
 
     const inputWordCount = val.trim().split(/\s+/).length;
 
