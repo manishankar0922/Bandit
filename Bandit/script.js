@@ -1348,7 +1348,10 @@ function initRocky(savedState) {
     e.preventDefault(); e.stopPropagation();
     wrap.classList.remove('show-menu');
     const hostname = window.location.hostname;
-    if (!hostname) return;
+    if (!hostname) {
+      say('I cannot be disabled on local files! 🐾', 3000);
+      return;
+    }
     (async () => {
       const currentState = window.RockyStorage ? await window.RockyStorage.loadState() : {};
       const currentList = currentState.disabledSites || [];
