@@ -953,7 +953,7 @@ function initRocky(savedState) {
       console.warn('Bandit: enhance failed', errMsg);
       setState('idle');
       say(`couldn't enhance that — ${escapeHTML(friendlyError(err))}<br><b>Set up key in settings 🔧</b>`, 4200);
-      
+
       // Auto-open settings if it's an API key or missing provider issue
       if (errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('cloud provider')) {
         setTimeout(() => {
@@ -1036,7 +1036,7 @@ function initRocky(savedState) {
     const rect = root.getBoundingClientRect();
     if (rect.right + 200 > window.innerWidth) wrap.classList.add('menu-left');
     else wrap.classList.remove('menu-left');
-    
+
     const menuExtra = doc.getElementById('menuExtra');
     const menuMore = doc.getElementById('menuMore');
     if (menuExtra) menuExtra.style.display = 'none';
@@ -1357,12 +1357,17 @@ function initRocky(savedState) {
       const currentList = currentState.disabledSites || [];
       if (!currentList.includes(hostname)) {
         persist({ disabledSites: [...currentList, hostname] }, { immediate: true });
-        say('ZZZ... (disabled on this site)');
-        setTimeout(() => {
-          if (shadowHost) shadowHost.remove();
-          else window.location.reload();
-        }, 1500);
       }
+      say('ZZZ... (disabled on this site)');
+      setTimeout(() => {
+        if (shadowHost) {
+          shadowHost.dispatchEvent(new CustomEvent('bandit-cleanup'));
+          shadowHost.remove();
+        } else {
+          const root = document.getElementById('rocky-root');
+          if (root) root.remove();
+        }
+      }, 1500);
     })().catch(err => console.warn('Bandit: disable failed', err));
   });
 
@@ -1401,7 +1406,7 @@ function initRocky(savedState) {
       // Force sleep — override last activity so the sleep interval doesn't wake him
       setState('sleeping');
       lastActivity = Date.now() + 999999; // prevent sleepInterval from waking him
-      
+
       const oldHouse = doc.querySelector('.bandit-house');
       if (oldHouse) oldHouse.remove();
 
@@ -1467,7 +1472,7 @@ function initRocky(savedState) {
       console.warn('Bandit: summarize failed', errMsg);
       setState('idle');
       say(`couldn't get that summary — ${escapeHTML(friendlyError(err))}<br><b>Set up key in settings 🔧</b>`, 4200);
-      
+
       if (errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('cloud provider')) {
         setTimeout(() => {
           const btn = doc.getElementById('menuSettings');
@@ -1715,7 +1720,7 @@ function initRocky(savedState) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `bandit-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.download = `bandit-backup-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
       if (backupStatus) { backupStatus.textContent = 'Backup exported! ✅'; setTimeout(() => { backupStatus.textContent = ''; }, 3000); }
@@ -2078,6 +2083,13 @@ if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
     const loadPromise = window.RockyStorage ? window.RockyStorage.loadState() : Promise.resolve(null);
     loadPromise
       .catch(err => { console.warn('Bandit: state load failed, using defaults', err); return null; })
-      .then(state => initRocky(state));
+      .then(state => {
+        const hostname = window.location.hostname;
+        if (state && state.disabledSites && hostname && state.disabledSites.includes(hostname)) {
+          if (demoRoot) demoRoot.remove();
+          return;
+        }
+        initRocky(state);
+      });
   });
 }
