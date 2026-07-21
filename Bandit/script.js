@@ -803,6 +803,7 @@ function initRocky(savedState) {
   }
 
   function enhancePrompt(overrideInput, overrideText) {
+    wrap.classList.remove('show-menu');
     const hostInput = overrideInput || getHostInput();
 
     if (!hostInput) {
@@ -1190,7 +1191,7 @@ function initRocky(savedState) {
       } else {
         lastTap = now;
         pokeActivity();
-        wrap.classList.remove('show-menu');
+        wrap.classList.toggle('show-menu');
       }
     }
   }, { signal });
