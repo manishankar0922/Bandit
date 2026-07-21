@@ -79,6 +79,16 @@
     </label>
 
     <label>
+      Prompt Tone
+      <select id="settingTone">
+        <option value="professional">🏢 Professional (default)</option>
+        <option value="casual">💬 Casual & Friendly</option>
+        <option value="academic">🎓 Academic & Scholarly</option>
+        <option value="creative">🎨 Creative & Bold</option>
+      </select>
+    </label>
+
+    <label>
       AI Provider
       <select id="settingProvider">
         <option value="anthropic">Anthropic Claude</option>
@@ -113,6 +123,14 @@
     <div style="text-align: center; margin-top: 4px;">
       <a href="https://github.com/manishankar0922/Bandit/blob/main/PRIVACY.md" target="_blank" style="font-size: 11px; color: var(--dim); text-decoration: underline;">Privacy Policy</a>
     </div>
+
+    <hr class="modal-divider">
+
+    <div style="display: flex; gap: 8px; justify-content: center;">
+      <button id="exportSettings" type="button" class="secondary" style="font-size: 11px;">💾 Export Backup</button>
+      <button id="importSettings" type="button" class="secondary" style="font-size: 11px;">📂 Import Backup</button>
+    </div>
+    <span id="backupStatus" style="font-size: 11px; color: var(--green); text-align: center; display: block;"></span>
 
     <button id="closeSettings">Save & Close</button>
   </div>

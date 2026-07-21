@@ -7,7 +7,7 @@
 [![Chrome / Edge](https://img.shields.io/badge/Chrome%20%2F%20Edge-Coming%20Soon-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge)](#-installation--availability)
 [![AI Providers](https://img.shields.io/badge/AI-Nano%20·%20Claude%20·%20OpenAI%20·%20Gemini%20·%20Groq%20·%20NVIDIA-f5a524?style=for-the-badge)](#-features)
 [![No telemetry](https://img.shields.io/badge/telemetry-none-2ea44f?style=for-the-badge)](PRIVACY.md)
-[![Version](https://img.shields.io/badge/version-2.3.2-lightgrey?style=for-the-badge)](#)
+[![Version](https://img.shields.io/badge/version-2.4-lightgrey?style=for-the-badge)](#)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
 **Feed him trash prompts. He gives back treasure.**
@@ -80,6 +80,9 @@ One keystroke. **Ctrl+Shift+E.** That's it.
 | 📜 **History & Undo** | Last 10 enhancements saved. One-click copy. Instant undo to restore your original text. |
 | 🎮 **Interactive Pet** | Bandit wanders, sleeps, chases apples, does spin tricks, and levels up with visual accessories. |
 | 🎓 **Guided Onboarding** | New users get a 3-step walkthrough teaching them exactly what Bandit does and how to use it. |
+| 🎤 **Prompt Tone Selector** | Choose how your enhanced prompt *sounds*: Professional, Casual, Academic, or Creative. Independent from structure style. |
+| 📊 **Word Count Indicator** | After each enhancement, Bandit shows `"12 → 87 words"` so you can see the improvement instantly. |
+| 💾 **Export & Import Backup** | Back up your API keys, XP, history, and settings to a JSON file. Restore on any machine in one click. |
 
 ---
 
@@ -143,7 +146,7 @@ Bandit/
 ├── index.html           # Settings modal, pet DOM structure, demo page
 └── ai/
     ├── pipeline.js      # Smart routing: BYOK-first when keys exist, Nano fallback
-    ├── providers.js     # Adapters for Anthropic, OpenAI, Gemini, Groq APIs
+    ├── providers.js     # Adapters for Anthropic, OpenAI, Gemini, Groq, NVIDIA APIs
     └── prompts.js       # Prompt engineering templates with output quality guards
 ```
 

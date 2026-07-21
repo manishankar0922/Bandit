@@ -62,6 +62,7 @@ function initRocky(savedState) {
     if (!key) return null;
     if (key.startsWith('sk-ant-')) return 'anthropic';
     if (key.startsWith('gsk_')) return 'groq';
+    if (key.startsWith('nvapi-')) return 'nvidia';
     if (key.startsWith('sk-proj-') || key.startsWith('sk-')) return 'openai';
     return 'gemini';
   }
@@ -322,6 +323,7 @@ function initRocky(savedState) {
   let lastFedAt = hydrated.lastFedAt || 0;
   let aiSettings = { provider: hydrated.provider || 'builtin', apiKey: hydrated.apiKey || '', model: hydrated.model || '', apiKeys: hydrated.apiKeys || {} };
   let enhanceStyle = hydrated.enhanceStyle || 'structured';
+  let enhanceTone = hydrated.enhanceTone || 'professional';
   let askPlaceholders = hydrated.askPlaceholders === true; // default OFF — enable in settings
   let lastEnhance = null; // { inputRef, original } — lets the Undo menu restore pre-enhance text
   // Named copyHistory (not `history`) to avoid shadowing window.history.
@@ -878,8 +880,12 @@ function initRocky(savedState) {
     setState('working');
     sayThinking('rummaging through your prompt 🔍');
 
-    const styles = (window.RockyPrompts && window.RockyPrompts.ENHANCE_SYSTEMS) || {};
-    const ENHANCE_SYSTEM = styles[enhanceStyle] || (window.RockyPrompts ? window.RockyPrompts.ENHANCE_SYSTEM : '');
+    const buildSys = window.RockyPrompts && window.RockyPrompts.buildSystemPrompt;
+    const ENHANCE_SYSTEM = buildSys
+      ? buildSys(enhanceStyle, enhanceTone)
+      : (styles[enhanceStyle] || (window.RockyPrompts ? window.RockyPrompts.ENHANCE_SYSTEM : ''));
+
+    const inputWordCount = val.trim().split(/\s+/).length;
 
     window.rockyAIPipeline(ENHANCE_SYSTEM, val.trim(), {
       actionKey: 'enhance',
@@ -916,7 +922,8 @@ function initRocky(savedState) {
             .catch(() => say('copy blocked by browser 😖 (check history 📜)', 4000));
         } else {
           setPromptText(hostInput, finalStr);
-          say('trash → treasure! <span class="xp-pop">+10 XP</span> ✨<br><span style="opacity:.7">menu → ↩️ Undo to revert</span>', 3600);
+          const outputWordCount = finalStr.split(/\s+/).length;
+          say(`trash → treasure! <span class="xp-pop">+10 XP</span> ✨<br><span style="opacity:.7">${inputWordCount} → ${outputWordCount} words · menu → ↩️ Undo</span>`, 4200);
         }
         setTimeout(() => { if (state === 'happy') setState('idle'); }, 1150);
       };
@@ -1587,9 +1594,13 @@ function initRocky(savedState) {
   const settingApiKey = doc.getElementById('settingApiKey');
   const settingModel = doc.getElementById('settingModel');
   const settingStyle = doc.getElementById('settingStyle');
+  const settingTone = doc.getElementById('settingTone');
   const settingAskPlaceholders = doc.getElementById('settingAskPlaceholders');
   const testApiKeyBtn = doc.getElementById('testApiKey');
   const testApiKeyStatus = doc.getElementById('testApiKeyStatus');
+  const exportBtn = doc.getElementById('exportSettings');
+  const importBtn = doc.getElementById('importSettings');
+  const backupStatus = doc.getElementById('backupStatus');
 
   const getApiKeyLink = doc.getElementById('getApiKeyLink');
 
@@ -1623,6 +1634,7 @@ function initRocky(savedState) {
     if (settingApiKey) settingApiKey.value = (aiSettings.apiKeys && aiSettings.apiKeys[aiSettings.provider]) || aiSettings.apiKey || '';
     if (settingModel) settingModel.value = aiSettings.model || '';
     if (settingStyle) settingStyle.value = enhanceStyle;
+    if (settingTone) settingTone.value = enhanceTone;
     if (settingAskPlaceholders) settingAskPlaceholders.checked = askPlaceholders;
     if (testApiKeyStatus) { testApiKeyStatus.textContent = ''; testApiKeyStatus.className = 'test-key-status'; }
     if (settingsModal) settingsModal.classList.add('show');
@@ -1681,8 +1693,66 @@ function initRocky(savedState) {
       apiKeys: newApiKeys,
     };
     if (settingStyle) enhanceStyle = settingStyle.value || 'structured';
+    if (settingTone) enhanceTone = settingTone.value || 'professional';
     if (settingAskPlaceholders) askPlaceholders = settingAskPlaceholders.checked;
-    persist({ petName, provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model, apiKeys: newApiKeys, enhanceStyle, askPlaceholders });
+    persist({ petName, provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model, apiKeys: newApiKeys, enhanceStyle, enhanceTone, askPlaceholders });
+  });
+
+  // --- EXPORT / IMPORT BACKUP ---
+  if (exportBtn) exportBtn.addEventListener('click', () => {
+    try {
+      const state = {
+        petName, xp, level, enhanceStyle, enhanceTone, askPlaceholders,
+        provider: aiSettings.provider, apiKeys: aiSettings.apiKeys,
+        model: aiSettings.model, history: copyHistory,
+        _banditBackup: true, _exportedAt: new Date().toISOString(),
+      };
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bandit-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      if (backupStatus) { backupStatus.textContent = 'Backup exported! ✅'; setTimeout(() => { backupStatus.textContent = ''; }, 3000); }
+    } catch (err) {
+      if (backupStatus) { backupStatus.textContent = 'Export failed ❌'; backupStatus.style.color = '#f44'; setTimeout(() => { backupStatus.textContent = ''; backupStatus.style.color = ''; }, 3000); }
+    }
+  });
+
+  if (importBtn) importBtn.addEventListener('click', () => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          if (!data._banditBackup) throw new Error('Not a Bandit backup file');
+          // Restore state
+          if (data.petName) { petName = data.petName; if (settingName) settingName.value = petName; }
+          if (typeof data.xp === 'number') { xp = data.xp; }
+          if (typeof data.level === 'number') { level = data.level; }
+          if (data.enhanceStyle) { enhanceStyle = data.enhanceStyle; if (settingStyle) settingStyle.value = enhanceStyle; }
+          if (data.enhanceTone) { enhanceTone = data.enhanceTone; if (settingTone) settingTone.value = enhanceTone; }
+          if (typeof data.askPlaceholders === 'boolean') { askPlaceholders = data.askPlaceholders; if (settingAskPlaceholders) settingAskPlaceholders.checked = askPlaceholders; }
+          if (data.provider) { aiSettings.provider = data.provider; if (settingProvider) settingProvider.value = data.provider; }
+          if (data.apiKeys && typeof data.apiKeys === 'object') { aiSettings.apiKeys = data.apiKeys; if (settingApiKey) settingApiKey.value = data.apiKeys[data.provider] || ''; }
+          if (data.model) { aiSettings.model = data.model; if (settingModel) settingModel.value = data.model; }
+          if (Array.isArray(data.history)) { copyHistory = data.history; }
+          updateXPDisplay();
+          persist({ petName, xp, level, enhanceStyle, enhanceTone, askPlaceholders, provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model, apiKeys: aiSettings.apiKeys, history: copyHistory }, { immediate: true });
+          if (backupStatus) { backupStatus.textContent = 'Backup restored! 🎉'; setTimeout(() => { backupStatus.textContent = ''; }, 3000); }
+        } catch (err) {
+          if (backupStatus) { backupStatus.textContent = 'Invalid backup file ❌'; backupStatus.style.color = '#f44'; setTimeout(() => { backupStatus.textContent = ''; backupStatus.style.color = ''; }, 3000); }
+        }
+      };
+      reader.readAsText(file);
+    });
+    fileInput.click();
   });
 
   if (settingSize) settingSize.addEventListener('input', e => {

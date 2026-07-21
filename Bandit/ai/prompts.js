@@ -81,6 +81,23 @@ OPEN QUESTIONS: unresolved issues, known bugs, next steps.
 
 Output only the brief — no preamble, no commentary.`;
 
+  // --- TONE MODIFIERS ---
+  // These are layered ON TOP of the style (structured/concise/detailed) to
+  // control the voice and personality of the output without changing its shape.
+  const TONE_MODIFIERS = {
+    professional: '', // default — no modifier needed, the base prompts are already professional
+    casual: `\n\nTONE OVERRIDE: Write the enhanced prompt in a casual, friendly, conversational tone. Use contractions, informal phrasing, and a warm approachable voice. Avoid stiff corporate language. The prompt should still be effective — just not stuffy.`,
+    academic: `\n\nTONE OVERRIDE: Write the enhanced prompt in a formal academic tone. Use precise terminology, structured argumentation, and scholarly phrasing. Reference established methodologies where appropriate. The prompt should read like instructions from a professor or research advisor.`,
+    creative: `\n\nTONE OVERRIDE: Write the enhanced prompt in a vivid, imaginative, boundary-pushing tone. Use rich metaphors, bold phrasing, and creative language that inspires the AI to think outside the box. The prompt should feel like it came from a visionary creative director.`,
+  };
+
+  // Combines a style template with a tone modifier. Used by the pipeline.
+  function buildSystemPrompt(style, tone) {
+    const base = ENHANCE_SYSTEMS[style] || ENHANCE_STRUCTURED;
+    const modifier = TONE_MODIFIERS[tone] || '';
+    return base + modifier;
+  }
+
   // ENHANCE_SYSTEM kept as an alias for the default style (back-compat).
-  root.RockyPrompts = { ENHANCE_SYSTEM: ENHANCE_STRUCTURED, ENHANCE_SYSTEMS, SUMMARIZE_SYSTEM };
+  root.RockyPrompts = { ENHANCE_SYSTEM: ENHANCE_STRUCTURED, ENHANCE_SYSTEMS, TONE_MODIFIERS, buildSystemPrompt, SUMMARIZE_SYSTEM };
 })(typeof window !== 'undefined' ? window : globalThis);

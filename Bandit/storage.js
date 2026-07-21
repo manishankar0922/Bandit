@@ -14,11 +14,12 @@
     onboarded: false,
     settings: { size: 1 },
     lastFedAt: 0,
-    provider: 'builtin', // 'builtin' | 'anthropic' | 'openai' | 'gemini' | 'groq'
+    provider: 'builtin', // 'builtin' | 'anthropic' | 'openai' | 'gemini' | 'groq' | 'nvidia'
     apiKey: '', // key for the active provider (kept for back-compat)
     apiKeys: {}, // per-provider saved keys — enables automatic failover
     model: '', // optional override; empty = provider's default model
     enhanceStyle: 'structured', // 'structured' | 'concise' | 'detailed'
+    enhanceTone: 'professional', // 'professional' | 'casual' | 'academic' | 'creative'
     askPlaceholders: false, // off by default — new users find it confusing. Enable in settings.
     streak: 0, // consecutive days Rocky has been visited
     lastVisitDay: '', // 'YYYY-MM-DD' of the last counted visit
@@ -28,8 +29,9 @@
     updateMessageCount: 0, // max 5 reminders
   };
 
-  const KNOWN_PROVIDERS = ['builtin', 'anthropic', 'openai', 'gemini', 'groq'];
+  const KNOWN_PROVIDERS = ['builtin', 'anthropic', 'openai', 'gemini', 'groq', 'nvidia'];
   const KNOWN_STYLES = ['structured', 'concise', 'detailed'];
+  const KNOWN_TONES = ['professional', 'casual', 'academic', 'creative'];
 
   const storageApiPresent = !!(api && api.storage && api.storage.local);
 
