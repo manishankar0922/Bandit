@@ -5,7 +5,7 @@
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue?style=for-the-badge)](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Get_Add--on-FF7139?logo=firefoxbrowser&logoColor=white&style=for-the-badge)](https://addons.mozilla.org/en-US/firefox/addon/bandit/)
 [![Chrome / Edge](https://img.shields.io/badge/Chrome%20%2F%20Edge-Coming%20Soon-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge)](#-installation--availability)
-[![AI Providers](https://img.shields.io/badge/AI-Nano%20·%20Claude%20·%20OpenAI%20·%20Gemini%20·%20Groq-f5a524?style=for-the-badge)](#-features)
+[![AI Providers](https://img.shields.io/badge/AI-Nano%20·%20Claude%20·%20OpenAI%20·%20Gemini%20·%20Groq%20·%20NVIDIA-f5a524?style=for-the-badge)](#-features)
 [![No telemetry](https://img.shields.io/badge/telemetry-none-2ea44f?style=for-the-badge)](PRIVACY.md)
 [![Version](https://img.shields.io/badge/version-2.3.2-lightgrey?style=for-the-badge)](#)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
@@ -75,7 +75,7 @@ One keystroke. **Ctrl+Shift+E.** That's it.
 | 📋 **Chat Summarization** | Scrapes visible AI chats (ChatGPT, Claude, Gemini) into concise context briefs you can paste into a new conversation. |
 | 🛡️ **Smart Input Guard** | Multi-layer validation rejects greetings, single words, profanity, and nonsense — only real prompts get sent to the AI. |
 | ⚡ **Instant Speed** | When you have cloud API keys, Bandit skips on-device AI entirely and goes straight to your provider. Sub-second enhancement. |
-| 🔒 **BYOK (Bring Your Own Key)** | Use Chrome's free on-device Gemini Nano, or plug in your own keys for Claude, OpenAI, Gemini, or Groq. |
+| 🔒 **BYOK (Bring Your Own Key)** | Use Chrome's free on-device Gemini Nano, or plug in your own keys for Claude, OpenAI, Gemini, Groq, or NVIDIA NIM. |
 | 🔄 **Automatic Failover** | If your primary provider hits a rate limit, Bandit silently falls back to your next configured provider. |
 | 📜 **History & Undo** | Last 10 enhancements saved. One-click copy. Instant undo to restore your original text. |
 | 🎮 **Interactive Pet** | Bandit wanders, sleeps, chases apples, does spin tricks, and levels up with visual accessories. |
@@ -104,7 +104,7 @@ One keystroke. **Ctrl+Shift+E.** That's it.
 |:---|:---|
 | **Ctrl+Shift+E** (Cmd+Shift+E on Mac) | Instantly enhance the focused text box. |
 | **Double-click Bandit** | Same as above — enhance whatever text box has focus. |
-| **Right-click Bandit** | Open the full menu: Enhance, Undo, Summarize, History, Settings. |
+| **Click Bandit** | Open the full menu: Enhance, Undo, Summarize, History, Settings. |
 | **Select text → Right-click page** | "Enhance with Bandit ✨" copies the enhanced version to clipboard. |
 | **Type >7 chars in a text box** | Bandit perks up and offers to enhance. |
 | **Drag & Drop** | Move Bandit anywhere. He remembers his spot across sessions. |
