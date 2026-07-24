@@ -28,25 +28,20 @@
     if (isDebugEnabled()) console.log('[Rocky AI]', ...args);
   }
 
-  function withTimeout(promise, ms, label) {
-    let timer;
-    const timeout = new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
-    });
-    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-  }
+
 
   // Tries the on-device model. Returns the generated string, or null if Nano
   // isn't available/usable here — callers fall back to BYOK on null.
   async function tryNano(systemPrompt, userText, onProgress) {
-    if (typeof LanguageModel === 'undefined') {
+    const lm = globalThis.ai?.languageModel || globalThis.LanguageModel;
+    if (typeof lm === 'undefined') {
       debugLog('LanguageModel global not present in this browser');
       return null;
     }
 
     let availability;
     try {
-      availability = await LanguageModel.availability();
+      availability = await lm.availability();
     } catch (err) {
       debugLog('availability() threw', err && err.message);
       return null;
@@ -58,24 +53,23 @@
 
     let session = null;
     try {
-      session = await withTimeout(
-        LanguageModel.create({
-          initialPrompts: [{ role: 'system', content: systemPrompt }],
-          monitor(m) {
-            try {
-              m.addEventListener('downloadprogress', (e) => {
-                if (onProgress) onProgress(typeof e.loaded === 'number' ? e.loaded : 0);
-              });
-            } catch (err) {
-              debugLog('monitor() not supported', err && err.message);
-            }
-          },
-        }),
-        NANO_TIMEOUT_MS,
-        'on-device model setup'
-      );
+      const signal = typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(NANO_TIMEOUT_MS) : undefined;
+      session = await lm.create({
+        signal,
+        initialPrompts: [{ role: 'system', content: systemPrompt }],
+        monitor(m) {
+          try {
+            m.addEventListener('downloadprogress', (e) => {
+              if (onProgress) onProgress(typeof e.loaded === 'number' ? e.loaded : 0);
+            });
+          } catch (err) {
+            debugLog('monitor() not supported', err && err.message);
+          }
+        },
+      });
 
-      const result = await withTimeout(session.prompt(userText), NANO_TIMEOUT_MS, 'on-device generation');
+      const promptSignal = typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(NANO_TIMEOUT_MS) : undefined;
+      const result = await session.prompt(userText, { signal: promptSignal });
       const text = typeof result === 'string' ? result.trim() : '';
       return text || null;
     } catch (err) {

@@ -28,18 +28,11 @@ api.contextMenus.onClicked.addListener((info, tab) => {
 });
 const FETCH_TIMEOUT_MS = 30000;
 
-function timeoutSignal(ms) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
-  return { signal: controller.signal, cancel: () => clearTimeout(timer) };
-}
-
 async function callProviderOnce(providerId, req) {
-  const { signal, cancel } = timeoutSignal(FETCH_TIMEOUT_MS);
   try {
     let res;
     try {
-      res = await fetch(req.url, { method: 'POST', signal, headers: req.headers, body: JSON.stringify(req.body) });
+      res = await fetch(req.url, { method: 'POST', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), headers: req.headers, body: JSON.stringify(req.body) });
     } catch (err) {
       if (err && err.name === 'AbortError') throw new Error(`${providerId} request timed out`);
       const e = new Error(`${providerId} network error: ` + ((err && err.message) || String(err)));
@@ -55,8 +48,6 @@ async function callProviderOnce(providerId, req) {
     }
     if (!self.RockyProviders) throw new Error('AI providers not loaded — extension may need reinstalling');
     return self.RockyProviders.parseResponse(providerId, data);
-  } finally {
-    cancel();
   }
 }
 

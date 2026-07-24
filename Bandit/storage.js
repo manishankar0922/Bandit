@@ -36,6 +36,9 @@
   const storageApiPresent = !!(api && api.storage && api.storage.local);
 
   function clone(obj) {
+    if (typeof structuredClone === 'function') {
+      return structuredClone(obj);
+    }
     return JSON.parse(JSON.stringify(obj));
   }
 

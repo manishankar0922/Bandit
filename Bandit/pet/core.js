@@ -119,184 +119,45 @@ function initRocky(savedState) {
      Every stage is try/caught: a broken selector never crashes the host page,
      it just falls through to the next, less-specific strategy.
      ========================================================= */
-  function scrapeClaudeAI() {
-    // data-testid="user-message" is the one stable hook Anthropic's web UI
-    // exposes for user turns; assistant turns don't have an equivalent, so we
-    // key off the message bubble class Claude uses and merge both in DOM order.
-    const userNodes = Array.from(document.querySelectorAll('[data-testid="user-message"]'));
-    const assistantNodes = Array.from(document.querySelectorAll('.font-claude-message'));
-    if (!userNodes.length && !assistantNodes.length) return null;
 
-    const tagged = [
-      ...userNodes.map(el => ({ el, role: 'user' })),
-      ...assistantNodes.map(el => ({ el, role: 'assistant' })),
-    ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
-
-    const out = [];
-    for (const { el, role } of tagged) {
-      const text = (el.innerText || el.textContent || '').trim();
-      if (text) out.push({ role, text });
-    }
-    return out.length ? out : null;
-  }
-
-  function scrapeGemini() {
-    // Gemini's web UI wraps turns in <user-query> / <model-response> custom elements.
-    const nodes = Array.from(document.querySelectorAll('user-query, model-response'));
-    if (!nodes.length) return null;
-
-    const out = [];
-    for (const el of nodes) {
-      const role = el.tagName.toLowerCase() === 'user-query' ? 'user' : 'assistant';
-      const text = (el.innerText || el.textContent || '').trim();
-      if (text) out.push({ role, text });
-    }
-    return out.length ? out : null;
-  }
-
-  function scrapeChatGPT() {
-    // ChatGPT wraps each turn in [data-message-author-role] attributes.
-    const nodes = Array.from(document.querySelectorAll('[data-message-author-role]'));
-    if (!nodes.length) return null;
-
-    const out = [];
-    for (const el of nodes) {
-      const role = el.getAttribute('data-message-author-role') === 'user' ? 'user' : 'assistant';
-      const text = (el.innerText || el.textContent || '').trim();
-      if (text) out.push({ role, text });
-    }
-    return out.length ? out : null;
-  }
-
-  function scrapeGenericFallback() {
-    const main = document.querySelector('main') || document.body;
-    const text = (main.innerText || main.textContent || '').trim();
-    // We want the MOST RECENT context, which is at the bottom of the page/chat.
-    // slice(-8000) grabs the end, whereas slice(0, 8000) grabbed the oldest text.
-    return text ? text.slice(-8000) : '';
-  }
-
-  function scrapeConversation() {
-    try {
-      const host = location.hostname || '';
-      let turns = null;
-      if (host.includes('claude.ai')) turns = scrapeClaudeAI();
-      else if (host.includes('gemini.google.com')) turns = scrapeGemini();
-      else if (host.includes('chatgpt.com') || host.includes('chat.openai.com')) turns = scrapeChatGPT();
-
-      if (turns && turns.length) {
-        // Join all turns, then grab the LAST 8000 characters. 
-        // This ensures we feed the AI the most recent context, not the beginning of a massive chat.
-        const joined = turns.map(t => `${t.role.toUpperCase()}: ${t.text}`).join('\n\n');
-        return joined.slice(-8000);
-      }
-    } catch (err) {
-      console.warn('Bandit: site-specific scrape failed, falling back to generic', err);
-    }
-
-    try {
-      return scrapeGenericFallback();
-    } catch (err) {
-      console.warn('Bandit: generic scrape failed', err);
-      return '';
-    }
-  }
 
   /* =========================================================
      SHARED PALETTE + HELPERS
      ========================================================= */
-  const C = {
-    K: '#1c1f26', G: '#9aa3ae', D: '#5b6470', W: '#efe7d6',
-    P: '#2b2f38', E: '#ffffff', A: '#f5a524',
-  };
   const NS = 'http://www.w3.org/2000/svg';
-  function rect(x, y, w, h, fill, parent) {
-    const r = document.createElementNS(NS, 'rect');
-    r.setAttribute('x', x); r.setAttribute('y', y);
-    r.setAttribute('width', w); r.setAttribute('height', h);
-    r.setAttribute('fill', fill); parent.appendChild(r); return r;
-  }
   function group(cls, parentSvg) {
     const g = document.createElementNS(NS, 'g');
     if (cls) g.setAttribute('class', cls);
     parentSvg.appendChild(g); return g;
   }
 
-  /* =========================================================
-     SPRITE 1 — THE CLASSIC (front-facing, your favorite)
-     ========================================================= */
-  const FRONT_BODY = [
-    "................................",
-    "................................",
-    "....KK..............KK.........",
-    "...KGGK............KGGK........",
-    "...KGDGK..........KGDGK........",
-    "...KGGGKKKKKKKKKKKKGGGK........",
-    "..KGGGGGGGGGGGGGGGGGGGGK.......",
-    "..KGGGGGGGGGGGGGGGGGGGGK.......",
-    ".KGGGGGGGGGGGGGGGGGGGGGGK......",
-    ".KGPPPPPGGGGGGGGGGPPPPPGK......",
-    ".KPPPPPPPGGGGGGGGPPPPPPPK......",
-    ".KPPEEPPPGGGGGGGGPPPEEPPK......",
-    ".KPPEEPPPGGGGGGGGPPPEEPPK......",
-    ".KGPPPPPGGWWWWWWGGPPPPPGK......",
-    ".KGGGGGGWWWWWWWWWWGGGGGGK......",
-    ".KGGGGGWWWWKKKKWWWWGGGGGK......",
-    "..KGGGGWWWWKKKKWWWWGGGGK.......",
-    "..KGGGGGWWWWWWWWWWGGGGGK.......",
-    "...KGGGGGWWWWWWWWGGGGGK........",
-    "...KGGGGGGGGGGGGGGGGGGK........",
-    "..KGGGGGGGGGGGGGGGGGGGGK.......",
-    "..KGGGGDGGGGGGGGGGDGGGGK.......",
-    ".KGGGGGDGGGGGGGGGGDGGGGGK......",
-    ".KGGGGGDGGGGGGGGGGDGGGGGK......",
-    ".KGGGGGGGGGGGGGGGGGGGGGGK......",
-    ".KGDDGGGGGGGGGGGGGGGGDDGK......",
-    "..KDDDGGGGGGGGGGGGGGDDDK.......",
-    "...KKKDDDKKKKKKKKDDDKKK........",
-    "......KKK........KKK...........",
-    "................................",
-    "................................",
-    "................................",
-  ];
-  const FRONT_TAIL = [
-    [24, 18, 4, 3, 'G'], [27, 16, 4, 3, 'K'], [29, 13, 4, 3, 'G'],
-    [30, 10, 4, 3, 'K'], [30, 7, 4, 3, 'G'], [29, 4, 4, 3, 'K'],
-  ];
-  const F_EYES_OPEN = [[4, 11, 2, 2, 'E'], [20, 11, 2, 2, 'E']];
-  const F_EYES_CLOSED = [[3, 12, 4, 1, 'K'], [19, 12, 4, 1, 'K']];
-  const F_EYES_HAPPY = [[4, 11, 2, 1, 'E'], [20, 11, 2, 1, 'E'], [2, 13, 2, 1, '#ff7b7b'], [22, 13, 2, 1, '#ff7b7b']];
-  const F_SHADES = [[2, 10, 8, 3, 'K'], [18, 10, 8, 3, 'K'], [10, 11, 8, 1, 'K'], [4, 11, 2, 1, '#69d2ff'], [20, 11, 2, 1, '#69d2ff']];
-  // Level 3: cozy red scarf around the neck, one dangling end.
-  const F_SCARF = [[3, 19, 20, 2, '#d64545'], [4, 21, 3, 1, '#b23737'], [4, 22, 2, 2, '#d64545']];
-  // Level 4: little gold crown perched between the ears.
-  const F_CROWN = [[10, 3, 1, 3, '#f5c542'], [13, 2, 1, 4, '#f5c542'], [16, 3, 1, 3, '#f5c542'], [9, 5, 9, 1, '#e0a92e'], [13, 1, 1, 1, '#fff1b8']];
-
   const frontSvg = doc.getElementById('frontSvg');
   if (!frontSvg) { console.error('Bandit: #frontSvg missing — aborting init'); return; }
+  
   const fTailG = group('tail', frontSvg);
-  FRONT_TAIL.forEach(([x, y, w, h, c]) => rect(x, y, w, h, C[c], fTailG));
+  fTailG.innerHTML = BANDIT_SPRITES.tail;
+  
   const fBodyG = group('body-group', frontSvg);
   const fEarsG = document.createElementNS(NS, 'g'); fEarsG.setAttribute('class', 'ears'); fBodyG.appendChild(fEarsG);
-  FRONT_BODY.forEach((row, y) => {
-    for (let x = 0; x < row.length; x++) {
-      const ch = row[x]; if (ch === '.') continue;
-      rect(x, y, 1, 1, C[ch], y <= 5 ? fEarsG : fBodyG);
-    }
-  });
+  fEarsG.innerHTML = BANDIT_SPRITES.ears;
+  
+  const fBodyRectsG = document.createElementNS(NS, 'g'); fBodyG.appendChild(fBodyRectsG);
+  fBodyRectsG.innerHTML = BANDIT_SPRITES.body;
+  
   const fEyesG = document.createElementNS(NS, 'g'); fBodyG.appendChild(fEyesG);
-  const fAccG = document.createElementNS(NS, 'g'); fBodyG.appendChild(fAccG);/* eye/accessory control */
-  function overlay(g, s) { if (!g) return; g.replaceChildren(); s.forEach(([x, y, w, h, c]) => rect(x, y, w, h, C[c] || c, g)); }
-  function eyesOpen() { overlay(fEyesG, F_EYES_OPEN); }
-  function eyesClosed() { overlay(fEyesG, F_EYES_CLOSED); }
-  function eyesHappy() { overlay(fEyesG, F_EYES_HAPPY); }
-  // Accessories stack up as Bandit levels: 2=shades, 3=+scarf, 4=+crown.
+  const fAccG = document.createElementNS(NS, 'g'); fBodyG.appendChild(fAccG);
+  
+  function overlay(g, html) { if (!g) return; g.innerHTML = html || ''; }
+  function eyesOpen() { overlay(fEyesG, BANDIT_SPRITES.eyesOpen); }
+  function eyesClosed() { overlay(fEyesG, BANDIT_SPRITES.eyesClosed); }
+  function eyesHappy() { overlay(fEyesG, BANDIT_SPRITES.eyesHappy); }
+  
   function applyAccessories(lvl) {
-    overlay(fAccG, [
-      ...(lvl >= 2 ? F_SHADES : []),
-      ...(lvl >= 3 ? F_SCARF : []),
-      ...(lvl >= 4 ? F_CROWN : []),
-    ]);
+    let accHtml = '';
+    if (lvl >= 2) accHtml += BANDIT_SPRITES.shades;
+    if (lvl >= 3) accHtml += BANDIT_SPRITES.scarf;
+    if (lvl >= 4) accHtml += BANDIT_SPRITES.crown;
+    overlay(fAccG, accHtml);
   }
   eyesOpen();
 
@@ -333,7 +194,7 @@ function initRocky(savedState) {
     copyHistory = [{ type, text, at: Date.now() }, ...copyHistory].slice(0, 10);
     persist({ history: copyHistory });
   }
-  const currentVersion = (rockyApi && rockyApi.runtime && rockyApi.runtime.getManifest) ? rockyApi.runtime.getManifest().version : '2.1';
+  const currentVersion = (rockyApi && rockyApi.runtime && rockyApi.runtime.getManifest) ? rockyApi.runtime.getManifest().version : '2.4';
   let lastSeenVersion = hydrated.lastSeenVersion || '';
   let updateMessageCount = hydrated.updateMessageCount || 0;
 
@@ -390,6 +251,7 @@ function initRocky(savedState) {
     const step = () => { n = (n % 3) + 1; say(base + '.'.repeat(n), 0); };
     step();
     thinkingTimer = setInterval(step, 450);
+    cleanupTasks.push(() => clearInterval(thinkingTimer));
   }
   function stopThinking() {
     clearInterval(thinkingTimer);
@@ -526,77 +388,6 @@ function initRocky(savedState) {
   });
 
   /* enhance flow */
-  function getDeepActiveElement() {
-    let el = document.activeElement;
-    while (el && el.shadowRoot && el.shadowRoot.activeElement) {
-      el = el.shadowRoot.activeElement;
-    }
-    return el;
-  }
-
-  function getHostInput() {
-    const active = getDeepActiveElement();
-    if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT' || active.isContentEditable)) {
-      if (active.disabled || active.readOnly) return null; // Cannot inject into disabled/readonly
-      const r = active.getBoundingClientRect();
-      // A focused-but-invisible element is worse than falling through to search.
-      if (r.width > 0 && r.height > 0) return active;
-    }
-
-    // Fall back to the largest VISIBLE candidate on the page. Many AI tool UIs
-    // have several textarea/contenteditable elements (hidden fields, decoys,
-    // secondary boxes) — the biggest one on screen is almost always the real
-    // prompt composer, regardless of DOM order.
-    const candidates = document.querySelectorAll(
-      'textarea, input[type="text"], input:not([type]), div[contenteditable="true"], [contenteditable="plaintext-only"]'
-    );
-    let best = null, bestArea = 0;
-    for (const el of candidates) {
-      if (el.disabled || el.readOnly) continue;
-      if (el.offsetParent === null) continue; // display:none / detached
-      const r = el.getBoundingClientRect();
-      const area = r.width * r.height;
-      if (area > bestArea) { bestArea = area; best = el; }
-    }
-    return best;
-  }
-
-  // The ONLY safe way to inject text into complex React/ProseMirror editors is
-  // execCommand — setting innerText/value directly corrupts their internal DOM
-  // state and can cause crash loops. Replaces the box's whole contents.
-  function setPromptText(hostInput, text) {
-    hostInput.focus();
-    if (hostInput.tagName === 'TEXTAREA' || hostInput.tagName === 'INPUT') {
-      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-      const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
-      if (hostInput.tagName === 'INPUT' && nativeInputValueSetter) {
-        nativeInputValueSetter.call(hostInput, text);
-      } else if (hostInput.tagName === 'TEXTAREA' && nativeTextAreaValueSetter) {
-        nativeTextAreaValueSetter.call(hostInput, text);
-      } else {
-        hostInput.value = text;
-      }
-      hostInput.dispatchEvent(new Event('input', { bubbles: true }));
-      hostInput.dispatchEvent(new Event('change', { bubbles: true }));
-      hostInput.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: ' ' }));
-    } else {
-      // contenteditable (Claude, Gemini, etc) — select everything, then replace
-      const selection = window.getSelection();
-      if (selection) selection.selectAllChildren(hostInput);
-      try {
-        if (!document.execCommand('insertText', false, text)) {
-          throw new Error('execCommand failed');
-        }
-      } catch (err) {
-        // Fallback if execCommand is blocked (strict CSP, deprecated, or framework-blocked).
-        // Riskier for React internals, but guarantees the text gets inserted.
-        hostInput.textContent = text;
-        hostInput.dispatchEvent(new Event('input', { bubbles: true }));
-        hostInput.dispatchEvent(new Event('change', { bubbles: true }));
-        hostInput.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: ' ' }));
-      }
-    }
-  }
 
   /* =========================================================
      PLACEHOLDER Q&A — when the enhanced prompt contains
@@ -689,21 +480,9 @@ function initRocky(savedState) {
   // Shared builder for Rocky's dynamic mini-modals (placeholder Q&A, history).
   // Overlay click dismisses; onClose fires exactly once however it closes.
   function openRockyModal(onClose) {
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay show';
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    overlay.appendChild(modal);
-    docBody.appendChild(overlay);
-    let closed = false;
-    const close = () => {
-      if (closed) return;
-      closed = true;
-      overlay.remove();
-      if (onClose) onClose();
-    };
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-    return { modal, close };
+    const dialog = BanditModals.createDialog(onClose);
+    dialog.show();
+    return { modal: dialog.modal, close: dialog.close };
   }
 
   // Asks one question per placeholder in a mini-modal (reuses settings-modal
@@ -804,7 +583,7 @@ function initRocky(savedState) {
 
   function enhancePrompt(overrideInput, overrideText) {
     wrap.classList.remove('show-menu');
-    const hostInput = overrideInput || getHostInput();
+    const hostInput = overrideInput || BanditInjector.getHostInput();
 
     if (!hostInput) {
       say("I can't find a text box to enhance! 🔍", 3000);
@@ -922,7 +701,7 @@ function initRocky(savedState) {
             .then(() => say('copied enhanced prompt to clipboard! 📋✨', 4000))
             .catch(() => say('copy blocked by browser 😖 (check history 📜)', 4000));
         } else {
-          setPromptText(hostInput, finalStr);
+          BanditInjector.setPromptText(hostInput, finalStr);
           const outputWordCount = finalStr.split(/\s+/).length;
           say(`trash → treasure! <span class="xp-pop">+10 XP</span> ✨<br><span style="opacity:.7">${inputWordCount} → ${outputWordCount} words · menu → ↩️ Undo</span>`, 4200);
         }
@@ -1122,13 +901,19 @@ function initRocky(savedState) {
     fEyesG.setAttribute('transform', `translate(${(dx * 0.7).toFixed(2)}, ${(dy * 0.5).toFixed(2)})`);
   }
 
+  let lastPointerCheck = 0;
   window.addEventListener('pointermove', e => {
     if (!drag) {
       eyesFollowCursor(e);
       if (state === 'sleeping') return;
+
+      const now = Date.now();
+      if (now - lastPointerCheck < 50) return;
+      lastPointerCheck = now;
+
       if (!getClosest(e, '#pet')) return;
 
-      petDistance += Math.hypot(e.movementX, e.movementY);
+      petDistance += Math.hypot(e.movementX, e.movementY) * 5; // scaled up since we drop frames
       if (petDistance > 200) {
         petDistance = 0;
         const now = Date.now();
@@ -1246,7 +1031,7 @@ function initRocky(savedState) {
       return;
     }
     try {
-      setPromptText(inputEl, lastEnhance.original);
+      BanditInjector.setPromptText(inputEl, lastEnhance.original);
       lastEnhance = null;
       say('back to your original ↩️', 2400);
     } catch (err) {
@@ -1277,70 +1062,24 @@ function initRocky(savedState) {
     return Math.round(s / 86400) + 'd ago';
   }
 
-  function showHistoryModal() {
-    const { modal, close } = openRockyModal();
 
-    const h = document.createElement('h3');
-    h.textContent = '📜 History';
-    modal.appendChild(h);
-
-    if (!copyHistory.length) {
-      const empty = document.createElement('div');
-      empty.style.cssText = 'font-size:12px;color:#8a95a5;line-height:1.6';
-      empty.textContent = 'Nothing here yet — enhance a prompt or summarize a chat, and it lands here for re-copying.';
-      modal.appendChild(empty);
-    }
-
-    if (copyHistory.length) {
-      const clearBtn = document.createElement('button');
-      clearBtn.type = 'button';
-      clearBtn.className = 'secondary';
-      clearBtn.style.cssText = 'font-size:11px;opacity:.7;margin-top:4px';
-      clearBtn.textContent = '🗑 Clear history';
-      clearBtn.addEventListener('click', () => {
-        copyHistory = [];
-        persist({ history: [] });
-        close();
-        showToast('history cleared');
-      });
-      modal.appendChild(clearBtn);
-    }
-
-    copyHistory.forEach(item => {
-      const row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'secondary';
-      row.style.cssText = 'text-align:left;white-space:normal;line-height:1.5;display:block;width:100%';
-      const icon = item.type === 'summary' ? '📋' : '✨';
-      const preview = item.text.length > 90 ? item.text.slice(0, 90) + '…' : item.text;
-      const meta = document.createElement('div');
-      meta.style.cssText = 'font-size:10px;opacity:.6;margin-bottom:3px';
-      meta.textContent = `${icon} ${item.type} · ${timeAgo(item.at)} · click to copy`;
-      const body = document.createElement('div');
-      body.textContent = preview;
-      row.appendChild(meta);
-      row.appendChild(body);
-      row.addEventListener('click', () => {
-        copyToClipboard(item.text)
-          .then(() => { showToast('copied 📋'); close(); })
-          .catch(() => { showToast("couldn't copy 😖"); });
-      });
-      modal.appendChild(row);
-    });
-
-    const done = document.createElement('button');
-    done.type = 'button';
-    done.textContent = 'Close';
-    done.addEventListener('click', close);
-    modal.appendChild(done);
-  }
 
   const menuHistory = doc.getElementById('menuHistory');
   if (menuHistory) menuHistory.addEventListener('click', (e) => {
     e.preventDefault(); e.stopPropagation();
     wrap.classList.remove('show-menu');
     pokeActivity();
-    showHistoryModal();
+    if (window.BanditPopup) {
+      window.BanditPopup.showHistoryModal({
+        copyHistory,
+        openRockyModal,
+        timeAgo,
+        copyToClipboard,
+        showToast,
+        persist,
+        onClear: () => { copyHistory = []; }
+      });
+    }
   });
 
   const menuDisable = doc.getElementById('menuDisable');
@@ -1428,7 +1167,7 @@ function initRocky(savedState) {
 
     let transcript = '';
     try {
-      transcript = scrapeConversation();
+      transcript = BanditScraper.scrapeConversation();
     } catch (err) {
       console.warn('Bandit: scrapeConversation threw', err);
     }
@@ -1575,6 +1314,7 @@ function initRocky(savedState) {
       }
       say(`I'm full… try again in ${secs}s 🦝`, 0);
     }, 1000);
+    cleanupTasks.push(() => clearInterval(feedCountdownTimer));
   }
 
   function feedRocky() {
@@ -1801,65 +1541,6 @@ function initRocky(savedState) {
       });
   });
 
-  const sendBtn = doc.getElementById('sendBtn');
-  if (sendBtn) sendBtn.addEventListener('click', () => {
-    pokeActivity();
-    if (!input) return;
-    const v = input.value.trim(); if (!v) return;
-
-    const m = document.createElement('div');
-    m.className = 'msg you' + (v.startsWith('GOAL') ? ' enhanced' : '');
-    m.replaceChildren(...new DOMParser().parseFromString('<div class="who">' + (v.startsWith('GOAL') ? 'You · enhanced by Bandit' : 'You') + '</div>' + v.replace(/</g, '&lt;'), 'text/html').body.childNodes);
-    if (messages) messages.appendChild(m);
-
-    input.value = ''; input.style.height = 'auto';
-    if (hint) hint.textContent = 'Bandit watches this box 👀';
-    alertShown = false;
-
-    stopRun();
-    setState('working');
-    say('Hold tight, the AI is cooking! 🍳', 8000);
-
-    if (!messages) return;
-    const aiMsg = document.createElement('div');
-    aiMsg.className = 'msg ai';
-    aiMsg.replaceChildren(...new DOMParser().parseFromString('<div class="who">VibeBuild AI</div><span class="stream"></span><span class="cursor">█</span>', 'text/html').body.childNodes);
-    messages.appendChild(aiMsg);
-    messages.scrollTop = messages.scrollHeight;
-
-    const streamTarget = aiMsg.querySelector('.stream');
-    const cursor = aiMsg.querySelector('.cursor');
-
-    const fakeCode = `I've updated the components according to your prompt.
-Here is the generated output:
-
-\`\`\`javascript
-export default function App() {
-  return (
-    <div className="flex h-screen bg-neutral-900 text-white">
-      <h1 className="m-auto text-4xl font-bold">Hello World</h1>
-    </div>
-  );
-}
-\`\`\`
-
-Let me know if you need any adjustments!`;
-
-    let i = 0;
-    const interval = setInterval(() => {
-      streamTarget.textContent += fakeCode[i];
-      messages.scrollTop = messages.scrollHeight;
-      i++;
-      if (i >= fakeCode.length) {
-        clearInterval(interval);
-        cursor.remove();
-        setState('happy');
-        say('All done! Boom! <span class="xp-pop">+10 XP</span>', 3000);
-        gainXP(10);
-        setTimeout(() => { if (state === 'happy') setState('idle'); }, 3000);
-      }
-    }, 25);
-  });
 
   /* Keyboard shortcut: Ctrl+Shift+E (or Cmd+Shift+E on Mac) → Enhance */
   window.addEventListener('keydown', e => {
@@ -2012,7 +1693,8 @@ Let me know if you need any adjustments!`;
   // gap). Re-clamp once layout has definitely settled, using the real
   // measurement — rAF for the common case, 'load' as a belt-and-suspenders for
   // slow-loading pages where even a rAF fires before styles are in.
-  requestAnimationFrame(reclampToViewport);
+  const initialRaf = requestAnimationFrame(reclampToViewport);
+  cleanupTasks.push(() => cancelAnimationFrame(initialRaf));
   window.addEventListener('load', reclampToViewport, { signal });
 
   // Daily streak: first visit each local day counts; consecutive days earn +5 XP.

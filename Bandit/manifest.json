@@ -29,7 +29,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["storage.js", "ai/prompts.js", "ai/pipeline.js", "script.js", "content.js"],
+      "js": ["storage.js", "ai/prompts.js", "ai/pipeline.js", "pet/sprites.js", "ui/scraper.js", "ui/injector.js", "ui/modals.js", "ui/popup.js", "pet/core.js", "content.js"],
       "run_at": "document_idle"
     }
   ],
@@ -38,5 +38,8 @@
       "resources": ["index.html", "styles.css"],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none';"
+  }
 }
