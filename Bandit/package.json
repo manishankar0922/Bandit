@@ -1,0 +1,15 @@
+{
+  "name": "bandit",
+  "version": "1.0.0",
+  "description": "Bandit is a pixel-art raccoon that lives on every webpage. He acts as your AI sidekick, helping you write better prompts, summarize long chats, and providing a fun, interactive desktop-pet experience!",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "esbuild": "^0.28.1"
+  }
+}

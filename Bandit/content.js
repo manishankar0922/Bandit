@@ -17,62 +17,47 @@ if (!window.rockyInjected) {
   // Firefox uses browser.*, Chrome uses chrome.* — fall back between them.
   const api = globalThis.browser ?? globalThis.chrome;
 
-  // 1. Create the host element for the Shadow DOM
-  const host = document.createElement('div');
-  host.id = 'bandit-extension-host';
-  // High z-index so it floats above everything
-  host.style.position = 'fixed';
-  host.style.zIndex = '2147483647'; 
-  host.style.pointerEvents = 'none'; // let clicks pass through the host container itself
-  host.style.top = '0';
-  host.style.left = '0';
-  host.style.width = '100vw';
-  host.style.height = '100vh';
-  (document.body || document.documentElement).appendChild(host);
-
-  // 2. Attach Shadow DOM — CLOSED so host-page scripts can't reach inside
-  // (with 'open', any page script could read host.shadowRoot and lift the
-  // API key straight out of the settings modal's input field).
-  const shadow = host.attachShadow({ mode: 'closed' });
-
-  // Content scripts run in an isolated world: this window property is visible
-  // to script.js (same world) but NOT to the host page's own JavaScript.
-  window.rockyShadowRoot = shadow;
-
-  // 3. Fetch index.html with cache busting, and load saved state in parallel.
-  //    Rocky stays hidden until both resolve, so he never flashes as level 1
-  //    before hydrating to his real saved level.
-  const htmlPromise = fetch(api.runtime.getURL('index.html')).then(response => response.text());
-  const cssPromise = fetch(api.runtime.getURL('styles.css')).then(response => response.text());
-
-  const statePromise = (window.RockyStorage ? window.RockyStorage.loadState() : Promise.resolve(null))
+  // Fetch cache busting state and load saved state in parallel.
+  const statePromise = ((typeof BanditEnv !== "undefined" ? BanditEnv.RockyStorage : window.RockyStorage) ? (typeof BanditEnv !== "undefined" ? BanditEnv.RockyStorage : window.RockyStorage).loadState() : Promise.resolve(null))
     .catch(err => { console.warn('Bandit: state load failed, using defaults', err); return null; });
 
-  Promise.all([htmlPromise, cssPromise, statePromise])
-    .then(([html, css, state]) => {
-      // We only want the content inside the <body> tag, without the <script> tags.
-      const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-      let bodyContent = bodyMatch ? bodyMatch[1] : html;
-
-      // Strip out the script tags from HTML to prevent duplicate execution
-      bodyContent = bodyContent.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-
-      // Parse the HTML string into a DOM element
-      const parser = new DOMParser();
-      const tempDiv = parser.parseFromString(bodyContent, 'text/html').body;
-
-      // Extract ONLY the pet and its settings
-      const rockyRoot = tempDiv.querySelector('#rocky-root');
-      
+  statePromise
+    .then((state) => {
       // If the user disabled Bandit for this site, abort and clean up
       if (state && state.disabledSites && state.disabledSites.includes(window.location.hostname)) {
-        host.remove();
         return;
       }
-      const settingsModal = tempDiv.querySelector('#settingsModal');
-      const toast = tempDiv.querySelector('#toast');
 
-      // Stay invisible until initRocky finishes hydrating from saved state.
+      // 1. Create the host element for the Shadow DOM
+      const host = document.createElement('div');
+      host.id = 'bandit-extension-host';
+      host.style.position = 'fixed';
+      host.style.zIndex = '2147483647'; 
+      host.style.pointerEvents = 'none'; // let clicks pass through
+      host.style.top = '0';
+      host.style.left = '0';
+      host.style.width = '100vw';
+      host.style.height = '100vh';
+      (document.body || document.documentElement).appendChild(host);
+
+      // 2. Attach Shadow DOM
+      const shadow = host.attachShadow({ mode: 'closed' });
+      window.rockyShadowRoot = shadow;
+
+      // 3. Inject HTML safely via template element
+      const html = BanditEnv.BanditTemplate ? BanditEnv.BanditTemplate.html : '';
+      const css = BanditEnv.BanditTemplate ? BanditEnv.BanditTemplate.css : '';
+
+      const template = document.createElement('template');
+      template.innerHTML = html;
+      const fragment = template.content;
+
+      // Extract ONLY the pet and its settings
+      const rockyRoot = fragment.querySelector('#rocky-root');
+      const settingsModal = fragment.querySelector('#settingsModal');
+      const toast = fragment.querySelector('#toast');
+
+      // Stay invisible until BanditEnv.initRocky finishes hydrating from saved state.
       if (rockyRoot) rockyRoot.style.visibility = 'hidden';
 
       if (rockyRoot) shadow.appendChild(rockyRoot);
@@ -100,10 +85,10 @@ if (!window.rockyInjected) {
       shadow.appendChild(style);
 
       // 6. Initialize Rocky logic (reveals itself once hydrated)
-      if (typeof initRocky === 'function') {
-        initRocky(state);
+      if (typeof BanditEnv.initRocky === 'function') {
+        BanditEnv.initRocky(state);
       } else {
-        throw new Error('script.js did not define initRocky (it may have failed to load)');
+        throw new Error('pet/core.js did not define initRocky (it may have failed to load)');
       }
     })
     .catch(err => {

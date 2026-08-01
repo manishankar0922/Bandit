@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bandit — AI Prompt Companion",
-  "version": "2.4",
+  "version": "2.5",
   "description": "A pixel-art raccoon that lives on every page — enhances your prompts, summarizes AI chats, and levels up as you use it.",
   "browser_specific_settings": {
     "gecko": {
@@ -24,18 +24,18 @@
     "https://integrate.api.nvidia.com/*"
   ],
   "background": {
-    "scripts": ["storage.js", "ai/providers.js", "background.js"]
+    "scripts": ["storage.js", "ai/utils.js", "ai/providers.js", "background.js"]
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["storage.js", "ai/prompts.js", "ai/pipeline.js", "pet/sprites.js", "ui/scraper.js", "ui/injector.js", "ui/modals.js", "ui/popup.js", "pet/core.js", "content.js"],
+      "js": ["content.bundle.js"],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["index.html", "styles.css"],
+      "resources": ["index.html", "styles.css", "pet/sprites.svg"],
       "matches": ["<all_urls>"]
     }
   ],

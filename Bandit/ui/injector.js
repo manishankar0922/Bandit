@@ -40,9 +40,7 @@
     
     // First clear contents before paste
     if (el.isContentEditable) {
-       const selection = window.getSelection();
-       if (selection) selection.selectAllChildren(el);
-       try { document.execCommand('delete', false, null); } catch(e){}
+       el.textContent = '';
     } else {
        el.value = '';
     }
@@ -52,11 +50,7 @@
     // Fallback if the framework ignores the paste event:
     if (!pasteEvent.defaultPrevented || el.textContent.trim() === '' && el.value === '') {
       if (el.isContentEditable) {
-        try {
-          if (!document.execCommand('insertText', false, text)) throw new Error();
-        } catch (e) {
-          el.textContent = text;
-        }
+        el.textContent = text;
       } else {
         const nativeInputSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
         const nativeTextareaSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
@@ -76,4 +70,4 @@
   }
 
   root.BanditInjector = { getHostInput, setPromptText };
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof BanditEnv !== 'undefined' ? BanditEnv : (typeof window !== 'undefined' ? window : globalThis));

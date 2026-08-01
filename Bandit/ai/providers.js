@@ -3,25 +3,14 @@
 // script, so API keys never touch the host page's JS context.
 (function (root) {
   const PROVIDERS = {
-    anthropic: { endpoint: 'https://api.anthropic.com/v1/messages', auth: 'x-api-key', model: 'claude-haiku-4-5-20251001', format: 'anthropic' },
+    anthropic: { endpoint: 'https://api.anthropic.com/v1/messages', auth: 'x-api-key', model: 'claude-3-5-haiku-20241022', format: 'anthropic' },
     openai:    { endpoint: 'https://api.openai.com/v1/chat/completions', auth: 'bearer', model: 'gpt-4o-mini', format: 'openai' },
     gemini:    { endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent', auth: 'query', model: 'gemini-2.0-flash', format: 'gemini' },
     groq:      { endpoint: 'https://api.groq.com/openai/v1/chat/completions', auth: 'bearer', model: 'llama-3.3-70b-versatile', format: 'openai' }, // Groq speaks the OpenAI chat-completions shape
     nvidia:    { endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions', auth: 'bearer', model: 'meta/llama3-70b-instruct', format: 'openai' },
   };
 
-  // Best-effort guess from key shape, used to auto-select the settings
-  // dropdown when the user pastes a key. Order matters: sk-ant- must be
-  // checked before the generic sk-/sk-proj- OpenAI patterns.
-  function detectProvider(apiKey) {
-    const key = (apiKey || '').trim();
-    if (!key) return null;
-    if (key.startsWith('sk-ant-')) return 'anthropic';
-    if (key.startsWith('gsk_')) return 'groq';
-    if (key.startsWith('nvapi-')) return 'nvidia';
-    if (key.startsWith('sk-proj-') || key.startsWith('sk-')) return 'openai';
-    return 'gemini'; // Gemini keys have no consistent prefix — last resort.
-  }
+
 
   function buildRequest(providerId, { apiKey, model, systemPrompt, userText, maxTokens }) {
     const cfg = PROVIDERS[providerId];
@@ -120,5 +109,5 @@
     throw new Error('Unknown provider format: ' + cfg.format);
   }
 
-  root.RockyProviders = { PROVIDERS, detectProvider, buildRequest, parseResponse };
+  root.RockyProviders = { PROVIDERS, buildRequest, parseResponse };
 })(typeof self !== 'undefined' ? self : globalThis);

@@ -1,5 +1,8 @@
 (function(root) {
-  function createDialog(onClose) {
+  // container: where to append the <dialog>. Pass the Shadow Root so the dialog
+  // inherits the extension's CSS (injected into the shadow). Falls back to
+  // document.body in demo / standalone mode where there is no shadow root.
+  function createDialog(onClose, container) {
     const dialog = document.createElement('dialog');
     dialog.className = 'modal';
 
@@ -25,7 +28,10 @@
       if (onClose) onClose();
     });
 
-    document.body.appendChild(dialog);
+    // Append inside the shadow root so the dialog inherits the extension's
+    // injected CSS. Fall back to document.body for the standalone demo page.
+    const host = container || document.body;
+    host.appendChild(dialog);
     return {
       modal: dialog,
       show: () => dialog.showModal(),
@@ -34,4 +40,4 @@
   }
 
   root.BanditModals = { createDialog };
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof BanditEnv !== 'undefined' ? BanditEnv : (typeof window !== 'undefined' ? window : globalThis));

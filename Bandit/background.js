@@ -1,13 +1,11 @@
 
 const api = globalThis.browser ?? globalThis.chrome;
+
+// storage.js and ai/providers.js are loaded by the manifest before background.js —
+// if they're missing something is seriously wrong (e.g. a packaging error).
+// Log clearly rather than swallowing the error with a silent importScripts fallback.
 if (typeof self.RockyStorage === 'undefined' || typeof self.RockyProviders === 'undefined') {
-  if (typeof importScripts === 'function') {
-    try {
-      importScripts('storage.js', 'ai/providers.js');
-    } catch (err) {
-      console.warn('Bandit: importScripts failed', err && err.message);
-    }
-  }
+  console.error('Bandit: storage.js or ai/providers.js failed to load — check the extension packaging. Some features will not work.');
 }
 
 api.runtime.onInstalled.addListener(() => {
@@ -27,42 +25,43 @@ api.contextMenus.onClicked.addListener((info, tab) => {
   }
 });
 const FETCH_TIMEOUT_MS = 30000;
+const activeRequests = new Map();
 
-async function callProviderOnce(providerId, req) {
-  try {
-    let res;
-    try {
-      res = await fetch(req.url, { method: 'POST', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), headers: req.headers, body: JSON.stringify(req.body) });
-    } catch (err) {
-      if (err && err.name === 'AbortError') throw new Error(`${providerId} request timed out`);
-      const e = new Error(`${providerId} network error: ` + ((err && err.message) || String(err)));
-      e.transient = true; // network blips are worth one silent retry
-      throw e;
-    }
-    let data = {};
-    try { data = await res.json(); } catch (err) { data = {}; }
-    if (!res.ok) {
-      const e = new Error((data.error && data.error.message) || `${providerId} error (HTTP ${res.status})`);
-      e.transient = res.status === 429 || res.status >= 500; // rate-limit/server hiccups retry once too
-      throw e;
-    }
-    if (!self.RockyProviders) throw new Error('AI providers not loaded — extension may need reinstalling');
-    return self.RockyProviders.parseResponse(providerId, data);
-  }
-}
-
-async function callProvider(providerId, apiKey, model, systemPrompt, userText) {
+async function callProvider(providerId, apiKey, model, systemPrompt, userText, retries = 2, customSignal = null) {
   if (!self.RockyProviders) throw new Error('AI providers not loaded — extension may need reinstalling');
   const req = self.RockyProviders.buildRequest(providerId, { apiKey, model, systemPrompt, userText });
-  try {
-    return await callProviderOnce(providerId, req);
-  } catch (err) {
-    if (!err || !err.transient) throw err;
-    // One automatic retry after a short backoff — invisible to the user
-    // unless it also fails. Auth/permission errors (4xx) never retry.
-    await new Promise((r) => setTimeout(r, 800));
-    return callProviderOnce(providerId, req);
+  
+  let res;
+  let attempt = 0;
+  let lastErr = null;
+
+  while (attempt <= retries) {
+    try {
+      const timeoutSignal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
+      const combinedSignal = customSignal ? (AbortSignal.any ? AbortSignal.any([timeoutSignal, customSignal]) : customSignal) : timeoutSignal;
+      res = await fetch(req.url, { method: 'POST', signal: combinedSignal, headers: req.headers, body: JSON.stringify(req.body) });
+      break; // Success
+    } catch (err) {
+      lastErr = err;
+      attempt++;
+      if (attempt <= retries) {
+        console.warn(`Bandit: provider ${providerId} failed, retrying (${attempt}/${retries})...`);
+        await new Promise(r => setTimeout(r, 1000 * attempt)); // Exponential backoff
+      }
+    }
   }
+
+  if (!res) {
+    if (lastErr && lastErr.name === 'AbortError') throw new Error(`${providerId} request timed out after ${retries} retries`);
+    throw new Error(`${providerId} network error: ` + ((lastErr && lastErr.message) || String(lastErr)));
+  }
+  
+  let data = {};
+  try { data = await res.json(); } catch (err) { console.error('Bandit: Failed to parse JSON response', err); data = {}; }
+  if (!res.ok) {
+    throw new Error((data.error && data.error.message) || `${providerId} error (HTTP ${res.status})`);
+  }
+  return self.RockyProviders.parseResponse(providerId, data);
 }
 
 async function getAISettings() {
@@ -81,51 +80,43 @@ async function getAISettings() {
   };
 }
 
-// Failover chain: the selected provider first (with its key), then every
-// other provider the user has a saved key for. Load spreads away from a
-// failing/quota-exhausted provider automatically instead of surfacing an
-// error while a working alternative sits unused.
-function buildCandidates({ provider, apiKey, apiKeys }) {
-  const candidates = [];
-  const primaryKey = apiKey || apiKeys[provider];
-  if (provider && provider !== 'builtin' && primaryKey) {
-    candidates.push({ provider, apiKey: primaryKey });
-  }
-  for (const [p, k] of Object.entries(apiKeys)) {
-    if (p !== provider && p !== 'builtin' && k) candidates.push({ provider: p, apiKey: k });
-  }
-  return candidates;
-}
-
-async function handleAICall(message) {
+async function handleAICall(message, tabId) {
   const settings = await getAISettings();
   if ((!settings.provider || settings.provider === 'builtin') && !Object.keys(settings.apiKeys).length) {
     throw new Error('No cloud provider selected — pick one in settings, or rely on built-in AI');
   }
-  const candidates = buildCandidates(settings);
-  if (!candidates.length) {
-    throw new Error("No API key set — add one in Bandit's settings ⚙️");
+  
+  const provider = settings.provider;
+  const apiKey = settings.apiKey || settings.apiKeys[provider];
+  
+  if (provider !== 'builtin' && !apiKey) {
+    throw new Error("No API key set for the selected provider — add one in Bandit's settings ⚙️");
   }
 
-  let lastErr = null;
-  for (const { provider, apiKey } of candidates) {
-    const startedAt = Date.now();
-    try {
-      // Model override only applies to the user's chosen provider — other
-      // providers in the chain use their own defaults.
-      const model = provider === settings.provider ? settings.model : '';
-      const text = await callProvider(provider, apiKey, model, message.systemPrompt, message.userText);
-      if (message.debug) {
-        // Debug-only: provider name + latency. Never the prompt text or the key.
-        console.log('[Bandit background]', provider, (Date.now() - startedAt) + 'ms');
-      }
-      return { ok: true, text, provider };
-    } catch (err) {
-      lastErr = err;
-      if (message.debug) console.log('[Bandit background]', provider, 'failed, trying next —', err && err.message);
+  const startedAt = Date.now();
+  
+  if (tabId) {
+    if (activeRequests.has(tabId)) {
+      activeRequests.get(tabId).abort('Cancelled by new request');
+    }
+    activeRequests.set(tabId, new AbortController());
+  }
+  const signal = tabId ? activeRequests.get(tabId).signal : null;
+
+  try {
+    const text = await callProvider(provider, apiKey, settings.model, message.systemPrompt, message.userText, 2, signal);
+    if (message.debug) {
+      console.log('[Bandit background]', provider, (Date.now() - startedAt) + 'ms');
+    }
+    return { ok: true, text, provider };
+  } catch (err) {
+    if (message.debug) console.log('[Bandit background]', provider, 'failed —', err && err.message);
+    throw err;
+  } finally {
+    if (tabId && activeRequests.has(tabId)) {
+      activeRequests.delete(tabId);
     }
   }
-  throw lastErr || new Error('all providers failed');
 }
 
 async function handleTestKey(message) {
@@ -149,7 +140,7 @@ api.runtime.onMessage.addListener((message, sender, sendResponse) => {
     try {
       const result = message.type === 'ROCKY_AI_TEST_KEY'
         ? await handleTestKey(message)
-        : await handleAICall(message);
+        : await handleAICall(message, sender.tab ? sender.tab.id : null);
       sendResponse(result);
     } catch (err) {
       // Never log prompt text or API keys — only the error message.

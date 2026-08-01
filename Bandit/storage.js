@@ -35,87 +35,48 @@
 
   const storageApiPresent = !!(api && api.storage && api.storage.local);
 
-  function clone(obj) {
-    if (typeof structuredClone === 'function') {
-      return structuredClone(obj);
-    }
-    return JSON.parse(JSON.stringify(obj));
-  }
-
-  // Missing/older-version fields fall back to defaults instead of crashing.
-  // Also does a one-time migration from the older nested `ai: {provider, apiKey, model}`
-  // shape into the current flat provider/apiKey fields (openai, previously supported,
-  // has no home here anymore — falls back to 'builtin').
   function mergeDefaults(stored) {
     const s = stored || {};
     const legacyAI = s.ai && typeof s.ai === 'object' ? s.ai : null;
-    const migratedProvider = legacyAI && KNOWN_PROVIDERS.includes(legacyAI.provider) ? legacyAI.provider : null;
-    const migratedApiKey = legacyAI && typeof legacyAI.apiKey === 'string' ? legacyAI.apiKey : null;
-
-    return {
-      xp: (typeof s.xp === 'number' && Number.isFinite(s.xp) && s.xp >= 0) ? s.xp : DEFAULTS.xp,
-      level: (typeof s.level === 'number' && Number.isInteger(s.level) && s.level >= 1) ? s.level : DEFAULTS.level,
-      petName: typeof s.petName === 'string' && s.petName.trim() ? s.petName.slice(0, 32) : DEFAULTS.petName,
-      position: {
-        x: (typeof s.position?.x === 'number' && Number.isFinite(s.position.x)) ? s.position.x : DEFAULTS.position.x,
-        y: (typeof s.position?.y === 'number' && Number.isFinite(s.position.y)) ? s.position.y : DEFAULTS.position.y,
-      },
-      onboarded: typeof s.onboarded === 'boolean' ? s.onboarded : DEFAULTS.onboarded,
-      settings: {
-        ...DEFAULTS.settings,
-        ...(s.settings && typeof s.settings === 'object' ? s.settings : {}),
-      },
-      lastFedAt: (typeof s.lastFedAt === 'number' && Number.isFinite(s.lastFedAt) && s.lastFedAt >= 0) ? s.lastFedAt : DEFAULTS.lastFedAt,
-      provider: typeof s.provider === 'string' && KNOWN_PROVIDERS.includes(s.provider)
-        ? s.provider
-        : (migratedProvider || DEFAULTS.provider),
-      apiKey: typeof s.apiKey === 'string' ? s.apiKey : (migratedApiKey || DEFAULTS.apiKey),
-      apiKeys: (() => {
-        const out = {};
-        if (s.apiKeys && typeof s.apiKeys === 'object') {
-          for (const p of KNOWN_PROVIDERS) {
-            if (typeof s.apiKeys[p] === 'string' && s.apiKeys[p]) out[p] = s.apiKeys[p];
-          }
-        }
-        // Migrate a pre-map single key into its provider's slot.
-        const single = typeof s.apiKey === 'string' ? s.apiKey : '';
-        if (single && typeof s.provider === 'string' && s.provider !== 'builtin' && !out[s.provider]) {
-          out[s.provider] = single;
-        }
-        return out;
-      })(),
-      model: typeof s.model === 'string' ? s.model : (legacyAI && typeof legacyAI.model === 'string' ? legacyAI.model : DEFAULTS.model),
-      enhanceStyle: KNOWN_STYLES.includes(s.enhanceStyle) ? s.enhanceStyle : DEFAULTS.enhanceStyle,
-      enhanceTone: KNOWN_TONES.includes(s.enhanceTone) ? s.enhanceTone : DEFAULTS.enhanceTone,
-      askPlaceholders: typeof s.askPlaceholders === 'boolean' ? s.askPlaceholders : DEFAULTS.askPlaceholders,
-      streak: (typeof s.streak === 'number' && Number.isFinite(s.streak) && s.streak >= 0) ? s.streak : DEFAULTS.streak,
-      lastVisitDay: typeof s.lastVisitDay === 'string' ? s.lastVisitDay : DEFAULTS.lastVisitDay,
-      history: Array.isArray(s.history)
-        ? s.history.filter(h => h && typeof h.type === 'string' && typeof h.text === 'string' && typeof h.at === 'number').slice(0, 10)
-        : DEFAULTS.history,
-      disabledSites: Array.isArray(s.disabledSites)
-        ? s.disabledSites.filter(h => typeof h === 'string')
-        : DEFAULTS.disabledSites,
-      lastSeenVersion: typeof s.lastSeenVersion === 'string' ? s.lastSeenVersion : DEFAULTS.lastSeenVersion,
-      updateMessageCount: (typeof s.updateMessageCount === 'number' && Number.isFinite(s.updateMessageCount) && s.updateMessageCount >= 0) ? s.updateMessageCount : DEFAULTS.updateMessageCount,
+    const merged = {
+      ...DEFAULTS,
+      ...s,
+      position: { ...DEFAULTS.position, ...(s.position || {}) },
+      settings: { ...DEFAULTS.settings, ...(s.settings || {}) },
+      apiKeys: { ...DEFAULTS.apiKeys, ...(s.apiKeys || {}) }
     };
+
+    if (legacyAI) {
+      if (!merged.provider && KNOWN_PROVIDERS.includes(legacyAI.provider)) merged.provider = legacyAI.provider;
+      if (!merged.apiKey && typeof legacyAI.apiKey === 'string') merged.apiKey = legacyAI.apiKey;
+      if (!merged.model && typeof legacyAI.model === 'string') merged.model = legacyAI.model;
+    }
+    
+    if (typeof merged.petName === 'string') merged.petName = merged.petName.slice(0, 32);
+    if (!KNOWN_PROVIDERS.includes(merged.provider)) merged.provider = DEFAULTS.provider;
+    if (!KNOWN_STYLES.includes(merged.enhanceStyle)) merged.enhanceStyle = DEFAULTS.enhanceStyle;
+    if (!KNOWN_TONES.includes(merged.enhanceTone)) merged.enhanceTone = DEFAULTS.enhanceTone;
+    if (!Array.isArray(merged.history)) merged.history = DEFAULTS.history;
+    if (!Array.isArray(merged.disabledSites)) merged.disabledSites = DEFAULTS.disabledSites;
+
+    return merged;
   }
 
-  let memoryState = clone(DEFAULTS);
+  let memoryState = structuredClone(DEFAULTS);
   let storageAvailable = storageApiPresent;
   let debounceTimer = null;
   let pending = null;
 
   async function loadState() {
-    if (!storageAvailable) return clone(memoryState);
+    if (!storageAvailable) return structuredClone(memoryState);
     try {
       const result = await api.storage.local.get(STORAGE_KEY);
       memoryState = mergeDefaults(result ? result[STORAGE_KEY] : null);
-      return clone(memoryState);
+      return structuredClone(memoryState);
     } catch (err) {
       console.warn('Bandit: storage.local.get failed, falling back to in-memory state', err);
       storageAvailable = false;
-      return clone(memoryState);
+      return structuredClone(memoryState);
     }
   }
 
@@ -166,7 +127,7 @@
       const listener = (changes, areaName) => {
         if (areaName !== 'local' || !changes[STORAGE_KEY]) return;
         memoryState = mergeDefaults(changes[STORAGE_KEY].newValue);
-        callback(clone(memoryState));
+        callback(structuredClone(memoryState));
       };
       api.storage.onChanged.addListener(listener);
       return () => {
@@ -178,5 +139,12 @@
     }
   }
 
+  // Ensure any pending writes are flushed when the page unloads
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('beforeunload', () => {
+      if (pending) flush();
+    });
+  }
+
   root.RockyStorage = { loadState, saveState, onStateChanged, flush, DEFAULTS };
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof BanditEnv !== 'undefined' ? BanditEnv : (typeof window !== 'undefined' ? window : globalThis));
