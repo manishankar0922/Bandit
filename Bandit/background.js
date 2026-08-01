@@ -1,11 +1,14 @@
 
 const api = globalThis.browser ?? globalThis.chrome;
 
-// storage.js and ai/providers.js are loaded by the manifest before background.js —
-// if they're missing something is seriously wrong (e.g. a packaging error).
-// Log clearly rather than swallowing the error with a silent importScripts fallback.
+try {
+  importScripts('storage.js', 'ai/utils.js', 'ai/providers.js');
+} catch (e) {
+  console.error('Bandit: Failed to import scripts in background service worker', e);
+}
+
 if (typeof self.RockyStorage === 'undefined' || typeof self.RockyProviders === 'undefined') {
-  console.error('Bandit: storage.js or ai/providers.js failed to load — check the extension packaging. Some features will not work.');
+  console.error('Bandit: storage.js or ai/providers.js failed to load. Some features will not work.');
 }
 
 api.runtime.onInstalled.addListener(() => {
@@ -21,7 +24,9 @@ api.contextMenus.onClicked.addListener((info, tab) => {
     api.tabs.sendMessage(tab.id, { 
       type: "ROCKY_TRIGGER_ENHANCE", 
       text: info.selectionText 
-    }).catch(() => {}); // ignore errors if content script not loaded
+    }).catch((err) => {
+      console.warn('Bandit: Failed to trigger enhance from context menu. Content script might not be loaded on this page.', err);
+    });
   }
 });
 const FETCH_TIMEOUT_MS = 30000;

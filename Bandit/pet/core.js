@@ -19,7 +19,7 @@ if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
           if (demoRoot) demoRoot.remove();
           return;
         }
-        initRocky(state);
+        BanditEnv.initRocky(state);
       });
   });
 }

@@ -24,7 +24,7 @@
     "https://integrate.api.nvidia.com/*"
   ],
   "background": {
-    "scripts": ["storage.js", "ai/utils.js", "ai/providers.js", "background.js"]
+    "service_worker": "background.bundle.js"
   },
   "content_scripts": [
     {

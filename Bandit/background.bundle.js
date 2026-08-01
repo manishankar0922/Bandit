@@ -1,7 +1,12 @@
 // background.js
 var api = globalThis.browser ?? globalThis.chrome;
+try {
+  importScripts("storage.js", "ai/utils.js", "ai/providers.js");
+} catch (e) {
+  console.error("Bandit: Failed to import scripts in background service worker", e);
+}
 if (typeof self.RockyStorage === "undefined" || typeof self.RockyProviders === "undefined") {
-  console.error("Bandit: storage.js or ai/providers.js failed to load \u2014 check the extension packaging. Some features will not work.");
+  console.error("Bandit: storage.js or ai/providers.js failed to load. Some features will not work.");
 }
 api.runtime.onInstalled.addListener(() => {
   api.contextMenus.create({
@@ -15,7 +20,8 @@ api.contextMenus.onClicked.addListener((info, tab) => {
     api.tabs.sendMessage(tab.id, {
       type: "ROCKY_TRIGGER_ENHANCE",
       text: info.selectionText
-    }).catch(() => {
+    }).catch((err) => {
+      console.warn("Bandit: Failed to trigger enhance from context menu. Content script might not be loaded on this page.", err);
     });
   }
 });
