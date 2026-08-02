@@ -17,23 +17,36 @@ BanditEnv.initBanditAnimations = function(savedState) {
     parentSvg.appendChild(g); return g;
   }
 
+  setSafeSvg = function(g, svgString) {
+    if (!g) return;
+    while (g.firstChild) g.removeChild(g.firstChild);
+    if (!svgString) return;
+    const parser = new DOMParser();
+    const parsed = parser.parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${svgString}</svg>`, 'image/svg+xml');
+    const fragment = document.createDocumentFragment();
+    while (parsed.documentElement.firstChild) {
+      fragment.appendChild(parsed.documentElement.firstChild);
+    }
+    g.appendChild(fragment);
+  };
+
   frontSvg = doc.getElementById('frontSvg');
   if (!frontSvg) { console.error('Bandit: #frontSvg missing — aborting init'); return; }
   
   fTailG = group('tail', frontSvg);
-  fTailG.innerHTML = BANDIT_SPRITES.tail;
+  setSafeSvg(fTailG, BANDIT_SPRITES.tail);
   
   fBodyG = group('body-group', frontSvg);
   fEarsG = document.createElementNS(NS, 'g'); fEarsG.setAttribute('class', 'ears'); fBodyG.appendChild(fEarsG);
-  fEarsG.innerHTML = BANDIT_SPRITES.ears;
+  setSafeSvg(fEarsG, BANDIT_SPRITES.ears);
   
   fBodyRectsG = document.createElementNS(NS, 'g'); fBodyG.appendChild(fBodyRectsG);
-  fBodyRectsG.innerHTML = BANDIT_SPRITES.body;
+  setSafeSvg(fBodyRectsG, BANDIT_SPRITES.body);
   
   fEyesG = document.createElementNS(NS, 'g'); fBodyG.appendChild(fEyesG);
   fAccG = document.createElementNS(NS, 'g'); fBodyG.appendChild(fAccG);
   
-  function overlay(g, html) { if (!g) return; g.innerHTML = html || ''; }
+  function overlay(g, html) { setSafeSvg(g, html); }
   function eyesOpen() { overlay(fEyesG, BANDIT_SPRITES.eyesOpen); }
   function eyesClosed() { overlay(fEyesG, BANDIT_SPRITES.eyesClosed); }
   function eyesHappy() { overlay(fEyesG, BANDIT_SPRITES.eyesHappy); }

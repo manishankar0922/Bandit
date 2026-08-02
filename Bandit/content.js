@@ -48,9 +48,12 @@ if (!window.rockyInjected) {
       const html = BanditEnv.BanditTemplate ? BanditEnv.BanditTemplate.html : '';
       const css = BanditEnv.BanditTemplate ? BanditEnv.BanditTemplate.css : '';
 
-      const template = document.createElement('template');
-      template.innerHTML = html;
-      const fragment = template.content;
+      const parser = new DOMParser();
+      const parsedDoc = parser.parseFromString(html, 'text/html');
+      const fragment = document.createDocumentFragment();
+      while (parsedDoc.body.firstChild) {
+        fragment.appendChild(parsedDoc.body.firstChild);
+      }
 
       // Extract ONLY the pet and its settings
       const rockyRoot = fragment.querySelector('#rocky-root');

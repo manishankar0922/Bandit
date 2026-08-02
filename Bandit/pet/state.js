@@ -3,7 +3,7 @@ BanditEnv.initBanditState = function(savedState) {
   docBody = (typeof window.rockyShadowRoot !== 'undefined') ? window.rockyShadowRoot : document.body;
 
   abortController = typeof AbortController !== 'undefined' ? new AbortController() : { signal: undefined, abort: () => { } };
-  { signal } = abortController;
+  signal = abortController.signal;
   cleanupTasks = [];
   shadowHost = (typeof window.rockyShadowRoot !== 'undefined') ? window.rockyShadowRoot.host : null;
   if (shadowHost) {
