@@ -20,7 +20,7 @@ BanditEnv.initBanditState = function(savedState) {
   };
   hydrated = savedState || rockyDefaults;
 
-  function persist(partial, opts) {
+  persist = function(partial, opts) {
     try {
       if (window.RockyStorage) window.RockyStorage.saveState(partial, opts);
     } catch (err) {
@@ -33,7 +33,7 @@ BanditEnv.initBanditState = function(savedState) {
   // and Summarize instead go through window.rockyAIPipeline, see ai/pipeline.js).
   rockyApi = globalThis.browser ?? globalThis.chrome;
 
-  function testAIKey(testSettings) {
+  testAIKey = function(testSettings) {
     return new Promise((resolve, reject) => {
       try {
         if (!rockyApi || !rockyApi.runtime || !rockyApi.runtime.sendMessage) {
@@ -57,13 +57,13 @@ BanditEnv.initBanditState = function(savedState) {
 
   // Provider/page-derived error text goes into bubble innerHTML — escape it so
   // a malicious error string can never inject markup into Rocky's shadow DOM.
-  function escapeHTML(s) {
+  escapeHTML = function(s) {
     const d = document.createElement('div');
     d.textContent = String(s);
     return d.innerHTML;
   }
 
-  function friendlyError(err) {
+  friendlyError = function(err) {
     const msg = (err && err.message) ? err.message : String(err || 'unknown error');
     if (/slow down/i.test(msg)) return 'one thing at a time — try again in a sec';
     if (/No API key/i.test(msg)) return 'no API key set';
@@ -75,7 +75,7 @@ BanditEnv.initBanditState = function(savedState) {
     return msg.length > 160 ? msg.slice(0, 160) + '…' : msg;
   }
 
-  function copyToClipboard(text) {
+  copyToClipboard = function(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
     }

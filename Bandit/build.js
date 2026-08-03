@@ -27,6 +27,7 @@ const scriptOrder = [
   'pet/shared.js',
   'pet/state.js',
   'pet/drag.js',
+  'pet/sprites.js',
   'pet/animations.js',
   'pet/ui.js',
   'pet/core.js',
@@ -55,3 +56,27 @@ try {
   fs.unlinkSync(path.join(__dirname, 'ui/template.js'));
   console.log('Removed old ui/template.js');
 } catch(e) {}
+
+// 2. Generate background.bundle.js
+const bgOrder = [
+  'storage.js',
+  'ai/utils.js',
+  'ai/providers.js',
+  'background.js'
+];
+
+let bgBundle = '';
+for (const scriptPath of bgOrder) {
+  bgBundle += `// --- START: ${scriptPath} ---\n`;
+  const content = fs.readFileSync(path.join(__dirname, scriptPath), 'utf8');
+  // Strip importScripts from background.js
+  if (scriptPath === 'background.js') {
+    bgBundle += content.replace(/try\s*\{\s*importScripts[^}]+\}\s*catch\s*\([^)]+\)\s*\{[^}]+\}/g, '');
+  } else {
+    bgBundle += content + '\n';
+  }
+  bgBundle += `// --- END: ${scriptPath} ---\n\n`;
+}
+
+fs.writeFileSync(path.join(__dirname, 'background.bundle.js'), bgBundle);
+console.log('Successfully generated background.bundle.js');

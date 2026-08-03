@@ -10,4 +10,4 @@
   }
   
   root.detectProviderFromKey = detectProviderFromKey;
-})(typeof BanditEnv !== 'undefined' ? BanditEnv : (typeof self !== 'undefined' ? self : globalThis));
+})((typeof self !== 'undefined' ? self : globalThis));

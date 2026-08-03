@@ -58,4 +58,4 @@
       modal.appendChild(done);
     }
   };
-})(typeof BanditEnv !== 'undefined' ? BanditEnv : (typeof window !== 'undefined' ? window : globalThis));
+})((typeof window !== 'undefined' ? window : globalThis));

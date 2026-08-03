@@ -4,6 +4,8 @@ BanditEnv.initRocky = function(savedState) {
     if (BanditEnv.initBanditAnimations) BanditEnv.initBanditAnimations(savedState);
     if (BanditEnv.initBanditDrag) BanditEnv.initBanditDrag(savedState);
     if (BanditEnv.initBanditUI) BanditEnv.initBanditUI(savedState);
+    if (BanditEnv.initHistory) BanditEnv.initHistory();
+    if (BanditEnv.initSettings) BanditEnv.initSettings();
 };
 
 if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {

@@ -88,9 +88,7 @@ BanditEnv.initSettings = function() {
     });
   }
 
-  closeSettings = doc.getElementById('closeSettings');
-  if (closeSettings) closeSettings.addEventListener('click', () => {
-    if (settingsModal) settingsModal.classList.remove('show');
+  function saveSettings() {
     petName = (settingName ? settingName.value.trim() : petName) || 'Bandit';
     updateXPDisplay();
 
@@ -108,6 +106,20 @@ BanditEnv.initSettings = function() {
     if (settingTone) enhanceTone = settingTone.value || 'professional';
     if (settingAskPlaceholders) askPlaceholders = settingAskPlaceholders.checked;
     persist({ petName, provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model, apiKeys: newApiKeys, enhanceStyle, enhanceTone, askPlaceholders });
+  }
+
+  if (settingName) settingName.addEventListener('input', saveSettings);
+  if (settingApiKey) settingApiKey.addEventListener('input', saveSettings);
+  if (settingProvider) settingProvider.addEventListener('change', saveSettings);
+  if (settingModel) settingModel.addEventListener('input', saveSettings);
+  if (settingStyle) settingStyle.addEventListener('change', saveSettings);
+  if (settingTone) settingTone.addEventListener('change', saveSettings);
+  if (settingAskPlaceholders) settingAskPlaceholders.addEventListener('change', saveSettings);
+
+  closeSettings = doc.getElementById('closeSettings');
+  if (closeSettings) closeSettings.addEventListener('click', () => {
+    if (settingsModal) settingsModal.classList.remove('show');
+    saveSettings();
   });
 
   // --- EXPORT / IMPORT BACKUP ---

@@ -344,65 +344,7 @@ BanditEnv.initBanditUI = function(savedState) {
     }
   }, { signal });
 
-  window.addEventListener('dblclick', e => {
-    if (state === 'working' || state === 'alert') return; // Don't interrupt AI processing or user input
-    if (getClosest(e, '#petWrap') || getClosest(e, '.modal')) return;
 
-    // Don't play fetch if the user is double-clicking text, inputs, buttons, or links
-    const closest = getClosest(e, '*');
-    const tag = closest && closest.tagName ? closest.tagName.toUpperCase() : '';
-    const isInteractive = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'A' || tag === 'SELECT' || getClosest(e, 'button') || getClosest(e, 'a') || (closest ? closest.isContentEditable : false);
-    if (isInteractive) return;
-
-    // Also check if text is selected to avoid fetching when highlighting words
-    const sel = window.getSelection();
-    if (sel && sel.toString().trim().length > 0) return;
-
-
-    // drop apple
-    const apple = document.createElement('div');
-    apple.className = 'fetch-apple';
-    apple.innerText = '🍎';
-    apple.style.position = 'fixed';
-    apple.style.left = (e.clientX - 12) + 'px';
-    apple.style.top = (e.clientY - 12) + 'px';
-    docBody.appendChild(apple);
-
-    stopRun();
-    setState('running');
-    pokeActivity();
-    isFetching = true;
-
-    const startX = root.offsetLeft;
-    const startY = root.offsetTop;
-
-    // Clamp the landing spot itself (not just the click point) so a fetch
-    // triggered near an edge can't run Rocky off-screen.
-    const landing = clampToViewport(e.clientX - 60, e.clientY - 90);
-
-    const dx = landing.x - startX;
-    const dy = landing.y - startY;
-    pet.className = `pet ${dx < 0 ? 'face-left' : 'face-right'}`;
-
-    const dist = Math.hypot(dx, dy);
-    const duration = dist * 4; // 4ms per pixel speed
-
-    root.style.transition = `left ${duration}ms linear, top ${duration}ms linear`;
-    root.style.right = 'auto';
-    root.style.bottom = 'auto';
-    root.style.left = landing.x + 'px';
-    root.style.top = landing.y + 'px';
-
-    if (fetchTimer) clearTimeout(fetchTimer);
-    fetchTimer = setTimeout(() => {
-      if (!isFetching) return; // cancelled by drag
-      isFetching = false;
-      root.style.transition = '';
-      apple.remove();
-      eatApple(3);
-      persist({ position: { x: root.offsetLeft, y: root.offsetTop } });
-    }, duration);
-  }, { signal });
 
   window.addEventListener('pointerdown', e => {
     if (!getClosest(e, '#rocky-root')) pokeActivity();

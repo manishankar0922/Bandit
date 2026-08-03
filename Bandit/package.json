@@ -11,5 +11,8 @@
   "license": "ISC",
   "devDependencies": {
     "esbuild": "^0.28.1"
+  },
+  "dependencies": {
+    "puppeteer": "^25.4.0"
   }
 }

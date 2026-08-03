@@ -147,4 +147,4 @@
   }
 
   root.RockyStorage = { loadState, saveState, onStateChanged, flush, DEFAULTS };
-})(typeof BanditEnv !== 'undefined' ? BanditEnv : (typeof window !== 'undefined' ? window : globalThis));
+})((typeof window !== 'undefined' ? window : globalThis));

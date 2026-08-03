@@ -1,5 +1,5 @@
 BanditEnv.initBanditDrag = function(savedState) {
-  function updateXPDisplay() {
+  updateXPDisplay = function() {
     const base = LEVELS[level - 1] || 0, next = LEVELS[level] ?? xp;
     const range = next - base; const pct = range > 0 ? Math.min(100, ((xp - base) / range) * 100) : 100;
     if (xpFill) xpFill.style.width = pct + '%';
@@ -7,7 +7,7 @@ BanditEnv.initBanditDrag = function(savedState) {
     if (xpLabel) xpLabel.replaceChildren(...new DOMParser().parseFromString(`${escapeHTML(name)} · <b>LVL ${level}</b> · ${xp}/${LEVELS[level] ?? 'MAX'} XP`, 'text/html').body.childNodes);
   }
 
-  function gainXP(n, silent = false) {
+  gainXP = function(n, silent = false) {
     xp += n;
     let leveledUp = false;
     while (level < LEVELS.length - 1 && xp >= LEVELS[level]) {
@@ -35,7 +35,7 @@ BanditEnv.initBanditDrag = function(savedState) {
     }
   }
 
-  function getClosest(e, sel) {
+  getClosest = function(e, sel) {
     const path = e.composedPath();
     const t = path && path[0];
     if (!t) return null;
@@ -47,7 +47,7 @@ BanditEnv.initBanditDrag = function(savedState) {
   // coordinates) so Rocky can never end up stranded off-screen — used during
   // drag, on resize/orientationchange, and when hydrating a saved position that
   // may have come from a bigger screen.
-  function clampToViewport(left, top) {
+  clampToViewport = function(left, top) {
     const rect = root.getBoundingClientRect();
     const w = rect.width > 0 ? rect.width : 150;
     const h = rect.height > 0 ? rect.height : 180;
@@ -127,7 +127,7 @@ BanditEnv.initBanditDrag = function(savedState) {
   });
   petDistance = 0;
   lastHeartTime = 0;
-  function spawnHeart() {
+  spawnHeart = function() {
     const h = document.createElement('div');
     h.className = 'heart';
     h.replaceChildren(...new DOMParser().parseFromString('<div style="width:4px;height:4px;background:transparent;box-shadow:4px 0 #ff4b4b,12px 0 #ff4b4b,0 4px #ff4b4b,4px 4px #ff4b4b,8px 4px #ff4b4b,12px 4px #ff4b4b,16px 4px #ff4b4b,4px 8px #ff4b4b,8px 8px #ff4b4b,12px 8px #ff4b4b,8px 12px #ff4b4b"></div>', 'text/html').body.childNodes);
@@ -144,7 +144,7 @@ BanditEnv.initBanditDrag = function(savedState) {
   // Throttled to ~10Hz; skipped while sleeping (eyes closed) or above level 1
   // (shades cover the eyes anyway).
   lastEyeMove = 0;
-  function eyesFollowCursor(e) {
+  eyesFollowCursor = function(e) {
     const now = Date.now();
     if (now - lastEyeMove < 100) return;
     lastEyeMove = now;

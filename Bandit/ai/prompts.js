@@ -100,4 +100,4 @@ Output only the brief — no preamble, no commentary.`;
 
   // ENHANCE_SYSTEM kept as an alias for the default style (back-compat).
   root.RockyPrompts = { ENHANCE_SYSTEM: ENHANCE_STRUCTURED, ENHANCE_SYSTEMS, TONE_MODIFIERS, buildSystemPrompt, SUMMARIZE_SYSTEM };
-})(typeof BanditEnv !== 'undefined' ? BanditEnv : (typeof window !== 'undefined' ? window : globalThis));
+})((typeof window !== 'undefined' ? window : globalThis));

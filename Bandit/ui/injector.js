@@ -30,37 +30,28 @@
   }
 
   function simulatePaste(el, text) {
-    const dt = new DataTransfer();
-    dt.setData('text/plain', text);
-    const pasteEvent = new ClipboardEvent('paste', {
-      clipboardData: dt,
-      bubbles: true,
-      cancelable: true
-    });
-    
-    // First clear contents before paste
-    if (el.isContentEditable) {
-       el.textContent = '';
-    } else {
-       el.value = '';
-    }
+    el.focus();
 
-    el.dispatchEvent(pasteEvent);
-    
-    // Fallback if the framework ignores the paste event:
-    if (!pasteEvent.defaultPrevented || el.textContent.trim() === '' && el.value === '') {
-      if (el.isContentEditable) {
-        el.textContent = text;
-      } else {
+    // The most robust way to replace text in modern web apps (React, ProseMirror, etc)
+    // is using execCommand, as it natively triggers all internal framework events.
+    if (el.isContentEditable) {
+      document.execCommand('selectAll', false, null);
+      document.execCommand('insertText', false, text);
+    } else {
+      el.select();
+      const success = document.execCommand('insertText', false, text);
+      
+      // Fallback for extremely stubborn inputs if execCommand fails
+      if (!success) {
         const nativeInputSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
         const nativeTextareaSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
         if (el.tagName === 'INPUT' && nativeInputSetter) nativeInputSetter.call(el, text);
         else if (el.tagName === 'TEXTAREA' && nativeTextareaSetter) nativeTextareaSetter.call(el, text);
         else el.value = text;
+
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
       }
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-      el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: ' ' }));
     }
   }
 
@@ -70,4 +61,4 @@
   }
 
   root.BanditInjector = { getHostInput, setPromptText };
-})(typeof BanditEnv !== 'undefined' ? BanditEnv : (typeof window !== 'undefined' ? window : globalThis));
+})((typeof window !== 'undefined' ? window : globalThis));

@@ -11,19 +11,7 @@ const escapeForJs = (str) => str.replace(/\\/g, '\\\\').replace(/`/g, '\\`').rep
 const templateJs = `export const html = \`${escapeForJs(html)}\`;\nexport const css = \`${escapeForJs(css)}\`;\n`;
 fs.writeFileSync('ui/template.js', templateJs);
 
-// 2. Build the Content Script
-esbuild.build({
-  entryPoints: ['content.js'],
-  bundle: true,
-  outfile: 'content.bundle.js',
-  format: 'iife',
-  target: 'es2020',
-}).then(() => {
-  console.log('Successfully bundled content.js -> content.bundle.js');
-}).catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Content Script is built by build.js
 
 // 3. Build the Background Script
 esbuild.build({

@@ -11,7 +11,7 @@ BanditEnv.initBanditAnimations = function(savedState) {
      SHARED PALETTE + HELPERS
      ========================================================= */
   NS = 'http://www.w3.org/2000/svg';
-  function group(cls, parentSvg) {
+  group = function(cls, parentSvg) {
     const g = document.createElementNS(NS, 'g');
     if (cls) g.setAttribute('class', cls);
     parentSvg.appendChild(g); return g;
@@ -46,12 +46,12 @@ BanditEnv.initBanditAnimations = function(savedState) {
   fEyesG = document.createElementNS(NS, 'g'); fBodyG.appendChild(fEyesG);
   fAccG = document.createElementNS(NS, 'g'); fBodyG.appendChild(fAccG);
   
-  function overlay(g, html) { setSafeSvg(g, html); }
-  function eyesOpen() { overlay(fEyesG, BANDIT_SPRITES.eyesOpen); }
-  function eyesClosed() { overlay(fEyesG, BANDIT_SPRITES.eyesClosed); }
-  function eyesHappy() { overlay(fEyesG, BANDIT_SPRITES.eyesHappy); }
+  overlay = function(g, html) { setSafeSvg(g, html); }
+  eyesOpen = function() { overlay(fEyesG, BANDIT_SPRITES.eyesOpen); }
+  eyesClosed = function() { overlay(fEyesG, BANDIT_SPRITES.eyesClosed); }
+  eyesHappy = function() { overlay(fEyesG, BANDIT_SPRITES.eyesHappy); }
   
-  function applyAccessories(lvl) {
+  applyAccessories = function(lvl) {
     let accHtml = '';
     if (lvl >= 2) accHtml += BANDIT_SPRITES.shades;
     if (lvl >= 3) accHtml += BANDIT_SPRITES.scarf;
@@ -116,7 +116,7 @@ BanditEnv.initBanditAnimations = function(savedState) {
   wrap.addEventListener('pointerenter', () => isHovering = true);
   wrap.addEventListener('pointerleave', () => isHovering = false);
 
-  function setState(s) {
+  setState = function(s) {
     wrap.classList.remove('alert', 'working', 'happy', 'sleeping', 'levelup', 'running', 'scooting', 'hopping');
     if (s !== 'idle') wrap.classList.add(s);
     if (s !== 'sleeping' && state === 'sleeping') {
@@ -128,13 +128,13 @@ BanditEnv.initBanditAnimations = function(savedState) {
     else if (level < 2) eyesOpen();
   }
 
-  function say(html, ms = 2600) {
+  say = function(html, ms = 2600) {
     if (!bubble) return;
     bubble.replaceChildren(...new DOMParser().parseFromString(html, 'text/html').body.childNodes); bubble.classList.add('show');
     clearTimeout(say._t);
     if (ms > 0) say._t = setTimeout(() => bubble.classList.remove('show'), ms);
   }
-  function showToast(msg) {
+  showToast = function(msg) {
     if (!toast) return;
     toast.textContent = msg; toast.classList.add('show');
     clearTimeout(showToast._t);
@@ -144,7 +144,7 @@ BanditEnv.initBanditAnimations = function(savedState) {
   // Animated "thinking…" bubble — cycling dots make waiting on the AI feel
   // alive instead of frozen. Always pair sayThinking() with stopThinking().
   thinkingTimer = null;
-  function sayThinking(base) {
+  sayThinking = function(base) {
     clearInterval(thinkingTimer);
     let n = 0;
     const step = () => { n = (n % 3) + 1; say(base + '.'.repeat(n), 0); };
@@ -152,7 +152,7 @@ BanditEnv.initBanditAnimations = function(savedState) {
     thinkingTimer = setInterval(step, 450);
     cleanupTasks.push(() => clearInterval(thinkingTimer));
   }
-  function stopThinking() {
+  stopThinking = function() {
     clearInterval(thinkingTimer);
     thinkingTimer = null;
   }
@@ -173,7 +173,7 @@ BanditEnv.initBanditAnimations = function(savedState) {
   fetchTimer = null;
   cleanupTasks.push(() => clearTimeout(fetchTimer));
 
-  function pokeActivity() {
+  pokeActivity = function() {
     lastActivity = Date.now();
     if (state === 'sleeping') {
       setState('startled');
@@ -196,7 +196,7 @@ BanditEnv.initBanditAnimations = function(savedState) {
   /* =========================================================
      RUNNING — swaps to the 4-leg side sprite mid-dash
      ========================================================= */
-  function startRun() {
+  startRun = function() {
     if (state === 'sleeping' || state === 'working' || drag || wrap.matches(':hover') || isFetching || state === 'startled') return;
     const r = root.getBoundingClientRect();
     root.style.left = r.left + 'px'; root.style.top = r.top + 'px';
@@ -243,7 +243,7 @@ BanditEnv.initBanditAnimations = function(savedState) {
     if (state === 'idle' && !isHovering && Date.now() - lastActivity > 5000 && Math.random() < .4) startRun();
   }, 8000);
   cleanupTasks.push(() => clearInterval(runInterval));
-  function stopRun() {
+  stopRun = function() {
     if (runAnim) cancelAnimationFrame(runAnim);
     runAnim = null;
     if (state === 'running' || state === 'scooting' || state === 'hopping') setState('idle');
@@ -368,11 +368,11 @@ BanditEnv.initBanditAnimations = function(savedState) {
       opts: ['npm', 'pnpm', 'yarn', 'bun']
     },
   ];
-  function suggestionsFor(ph) {
+  suggestionsFor = function(ph) {
     for (const s of PLACEHOLDER_SUGGESTIONS) if (s.re.test(ph)) return s.opts;
     return []; // No match = no suggestions. User types their own — safer than guessing wrong.
   }
-  function extractPlaceholders(text) {
+  extractPlaceholders = function(text) {
     const found = new Set();
     const re = /(?:^|[^a-zA-Z0-9_])\[([a-zA-Z][a-zA-Z0-9\s_/\-\.,']{1,48})\](?!\()/g;
     let m;
@@ -382,7 +382,7 @@ BanditEnv.initBanditAnimations = function(savedState) {
 
   // Shared builder for Rocky's dynamic mini-modals (placeholder Q&A, history).
   // Overlay click dismisses; onClose fires exactly once however it closes.
-  function openRockyModal(onClose) {
+  openRockyModal = function(onClose) {
     const dialog = BanditModals.createDialog(onClose);
     dialog.show();
     return { modal: dialog.modal, close: dialog.close };
@@ -390,7 +390,7 @@ BanditEnv.initBanditAnimations = function(savedState) {
 
   // Asks one question per placeholder in a mini-modal (reuses settings-modal
   // styling). Skipped/dismissed placeholders stay bracketed in the output.
-  function askPlaceholderValues(text, placeholders, done) {
+  askPlaceholderValues = function(text, placeholders, done) {
     let i = 0;
     let out = text;
     let answering = false; // separate flag — can't set properties on a string primitive
@@ -484,7 +484,7 @@ BanditEnv.initBanditAnimations = function(savedState) {
     renderQuestion();
   }
 
-  function enhancePrompt(overrideInput, overrideText) {
+  enhancePrompt = function(overrideInput, overrideText) {
     wrap.classList.remove('show-menu');
     const hostInput = overrideInput || BanditInjector.getHostInput();
 
