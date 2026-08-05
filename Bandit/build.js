@@ -1,82 +1,98 @@
 const fs = require('fs');
 const path = require('path');
+const esbuild = require('esbuild');
 
-console.log('Building Bandit Extension...');
+const SRC_DIR = path.join(__dirname, 'src');
+const TEMPLATE_HTML = path.join(SRC_DIR, 'ui', 'template.html');
+const TEMPLATE_CSS = path.join(SRC_DIR, 'ui', 'template.css');
 
-// 1. Generate template code
-const html = fs.readFileSync(path.join(__dirname, 'ui/template.html'), 'utf8');
-const css = fs.readFileSync(path.join(__dirname, 'ui/template.css'), 'utf8');
-
-// Escape backticks and standard JS string escaping
-const escapeForJs = (str) => {
-  return str.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+// Plugin to inject the HTML and CSS templates directly into content.js
+const templateInjectorPlugin = {
+  name: 'template-injector',
+  setup(build) {
+    build.onLoad({ filter: /content\.js$/ }, async (args) => {
+      let source = await fs.promises.readFile(args.path, 'utf8');
+      
+      const html = await fs.promises.readFile(TEMPLATE_HTML, 'utf8');
+      const css = await fs.promises.readFile(TEMPLATE_CSS, 'utf8');
+      
+      // Escape backticks and dollars for template literals
+      const escape = (str) => str.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+      
+      source = source.replace(/`__TEMPLATE_HTML__`/g, '`' + escape(html) + '`');
+      source = source.replace(/`__TEMPLATE_CSS__`/g, '`' + escape(css) + '`');
+      
+      return {
+        contents: source,
+        loader: 'js'
+      };
+    });
+  }
 };
 
-
-const scriptOrder = [
-  'storage.js',
-  'ai/utils.js',
-  'ai/prompts.js',
-  'ai/pipeline.js',
-  '<TEMPLATE>',
-  'ui/injector.js',
-  'ui/modals.js',
-  'ui/popup.js',
-  'ui/settings.js',
-  'ui/history.js',
-  'pet/shared.js',
-  'pet/state.js',
-  'pet/drag.js',
-  'pet/sprites.js',
-  'pet/animations.js',
-  'pet/ui.js',
-  'pet/core.js',
-  'content.js'
-];
-
-let finalBundle = '(() => {\nconst BanditEnv = {};\n'; // Wrap in IIFE and define shared env
-for (const scriptPath of scriptOrder) {
-  if (scriptPath === '<TEMPLATE>') {
-    finalBundle += `// --- START: ui/template.js (compiled) ---\n`;
-    finalBundle += `BanditEnv.BanditTemplate = { html: \`${escapeForJs(html)}\`, css: \`${escapeForJs(css)}\` };\n`;
-    finalBundle += `// --- END: ui/template.js ---\n\n`;
-  } else {
-    finalBundle += `// --- START: ${scriptPath} ---\n`;
-    const content = fs.readFileSync(path.join(__dirname, scriptPath), 'utf8');
-    finalBundle += content + '\n';
-    finalBundle += `// --- END: ${scriptPath} ---\n\n`;
+async function buildPlatform(platform) {
+  const distDir = path.join(__dirname, 'dist', platform);
+  if (!fs.existsSync(distDir)) {
+    fs.mkdirSync(distDir, { recursive: true });
   }
-}
-finalBundle += '})();\n';
 
-fs.writeFileSync(path.join(__dirname, 'content.bundle.js'), finalBundle);
-console.log('Successfully generated content.bundle.js');
+  console.log(`Building for ${platform}...`);
+  
+  // Build JS
+  await esbuild.build({
+    entryPoints: ['src/content.js'],
+    bundle: true,
+    outfile: path.join(distDir, 'content.bundle.js'),
+    format: 'iife',
+    target: 'es2020',
+    minify: false,
+    plugins: [templateInjectorPlugin]
+  });
+  
+  await esbuild.build({
+    entryPoints: ['src/background.js'],
+    bundle: true,
+    outfile: path.join(distDir, 'background.bundle.js'),
+    format: 'iife',
+    target: 'es2020',
+    minify: false
+  });
 
-try {
-  fs.unlinkSync(path.join(__dirname, 'ui/template.js'));
-  console.log('Removed old ui/template.js');
-} catch(e) {}
+  // Process manifest.json
+  const manifestRaw = await fs.promises.readFile(path.join(SRC_DIR, 'manifest.json'), 'utf8');
+  const manifest = JSON.parse(manifestRaw);
 
-// 2. Generate background.bundle.js
-const bgOrder = [
-  'storage.js',
-  'ai/utils.js',
-  'ai/providers.js',
-  'background.js'
-];
-
-let bgBundle = '';
-for (const scriptPath of bgOrder) {
-  bgBundle += `// --- START: ${scriptPath} ---\n`;
-  const content = fs.readFileSync(path.join(__dirname, scriptPath), 'utf8');
-  // Strip importScripts from background.js
-  if (scriptPath === 'background.js') {
-    bgBundle += content.replace(/try\s*\{\s*importScripts[^}]+\}\s*catch\s*\([^)]+\)\s*\{[^}]+\}/g, '');
-  } else {
-    bgBundle += content + '\n';
+  if (platform === 'chrome') {
+    // Chrome requires service_worker for MV3 background
+    manifest.background = { service_worker: "background.bundle.js" };
+    // Chrome warns about browser_specific_settings, so remove it
+    delete manifest.browser_specific_settings;
+  } else if (platform === 'firefox') {
+    // Firefox requires scripts for MV3 background
+    manifest.background = { scripts: ["background.bundle.js"] };
   }
-  bgBundle += `// --- END: ${scriptPath} ---\n\n`;
+
+  await fs.promises.writeFile(
+    path.join(distDir, 'manifest.json'), 
+    JSON.stringify(manifest, null, 2)
+  );
+
+  // Copy static assets
+  await fs.promises.copyFile(
+    path.join(__dirname, 'index.html'), 
+    path.join(distDir, 'index.html')
+  );
 }
 
-fs.writeFileSync(path.join(__dirname, 'background.bundle.js'), bgBundle);
-console.log('Successfully generated background.bundle.js');
+async function build() {
+  try {
+    await buildPlatform('firefox');
+    await buildPlatform('chrome');
+    console.log('Build complete! Generated dist/firefox and dist/chrome');
+  } catch (err) {
+    console.error('Build failed:', err);
+    process.exit(1);
+  }
+}
+
+build();

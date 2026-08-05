@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bandit — AI Prompt Companion</title>
+  <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="logo"></div>
+    <b>VibeBuild</b><span>— untitled-project-7</span>
+    <span class="demo-tag">DEMO · Bandit Desktop Pet 🐾</span>
+  </div>
+  <div class="stage">
+    <div id="rocky-root">
+  <div class="pet-wrap" id="petWrap">
+    <div class="bubble" id="bubble">
+      <button id="bubbleClose" style="position:absolute; top:2px; right:4px; background:none; border:none; font-size:10px; color:#888; cursor:pointer; padding:2px;">✕</button>
+      <div id="bubbleText"></div>
+      <form id="followUpForm" style="display: none; margin-top: 8px; position: relative;">
+        <input type="text" id="followUpInput" placeholder="Refine... (e.g. 'shorter')" autocomplete="off" style="width:100%; box-sizing:border-box; border:1px solid rgba(0,0,0,0.1); background:rgba(0,0,0,0.05); color:#232323; padding:6px 28px 6px 10px; border-radius:12px; outline:none; font-family:inherit; font-size:11px;">
+        <button type="submit" style="position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--amber); font-size: 14px; padding: 2px;">⏎</button>
+      </form>
+    </div>
+    <div class="radial-menu" id="petMenu">
+      <button id="menuEnhance" class="radial-item" style="--a: -120deg">✨<span class="label">Enhance</span></button>
+      <button id="menuSummarize" class="radial-item" style="--a: -80deg">📋<span class="label">Summarize</span></button>
+      <button id="menuUndo" class="radial-item" style="--a: -40deg">↩️<span class="label">Undo</span></button>
+      <button id="menuFeed" class="radial-item" style="--a: 0deg">🍪<span class="label">Feed Bandit</span></button>
+      <button id="menuHistory" class="radial-item" style="--a: 40deg">📜<span class="label">History</span></button>
+      <button id="menuSettings" class="radial-item" style="--a: 80deg">⚙️<span class="label">Settings</span></button>
+      <button id="menuHome" class="radial-item" style="--a: 120deg">🏠<span class="label">Go Home</span></button>
+      <button id="menuDisable" class="radial-item" style="--a: 160deg">🚫<span class="label">Disable</span></button>
+    </div>
+    <div class="emote" id="startleEmote" style="display:none;position:absolute;top:-10px;font-size:28px;z-index:10;animation:pop .3s cubic-bezier(.3,1.4,.5,1)">❗️</div>
+    <div class="pet" id="pet">
+      <span class="zzz">z</span><span class="zzz z2">z</span>
+      <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
+      <div class="sprite" id="frontSprite"><svg viewBox="0 0 32 32" id="frontSvg"></svg></div>
+      
+      
+      
+    </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h3>Bandit Settings</h3>
+    
+    <div class="xp-bar" style="opacity:1; transform:none; pointer-events:auto; margin:0 0 4px 0; width:100%; max-width:none; background:#0f1318;"><div class="xp-fill" id="xpFill"></div></div>
+    <div class="xp-label" id="xpLabel" style="opacity:1; transform:none; pointer-events:auto; margin-bottom:16px;">BANDIT · <b>LVL 1</b> · 0/20 XP</div>
+
+    <label>
+      Name
+      <input type="text" id="settingName" value="Bandit" autocomplete="off" spellcheck="false" maxlength="32">
+    </label>
+    <label>
+      Size (<span id="sizeValue">100%</span>)
+      <input type="range" id="settingSize" min="0.5" max="2" step="0.1" value="1">
+    </label>
+
+      <div class="field-group">
+        <h4>Custom AI Model</h4>
+        <input type="text" id="settingCustomModel" placeholder="e.g. gpt-4o, claude-3-opus-20240229 (optional)" style="width:100%; border:1px solid var(--line); border-radius:4px; padding:4px; font-family:var(--font-sans); font-size:12px; background:transparent; color:white;">
+      </div>
+      
+      <div class="field-group">
+        <h4>Custom Prompt Rules</h4>
+        <textarea id="settingCustomInstructions" placeholder="e.g. 'Always output as a React component' or 'Format it for Midjourney'" style="width:100%; min-height:60px; border:1px solid var(--line); border-radius:4px; padding:4px; font-family:var(--font-sans); font-size:12px; background:transparent; color:white; resize:vertical;"></textarea>
+      </div>
+
+      <div class="field-group">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="settingAskPlaceholders">
+          <span>Ask me to fill in [placeholders] after Enhance</span>
+        </label>
+      </div>
+
+    <hr class="modal-divider">
+
+    <label>
+      Enhance Style
+      <select id="settingStyle">
+        <option value="structured">Structured (GOAL / CONTEXT / REQUIREMENTS)</option>
+        <option value="concise">Concise (one tight paragraph)</option>
+        <option value="detailed">Detailed (full spec + edge cases)</option>
+      </select>
+    </label>
+
+    <label>
+      Prompt Tone
+      <select id="settingTone">
+        <option value="professional">🏢 Professional (default)</option>
+        <option value="casual">💬 Casual & Friendly</option>
+        <option value="academic">🎓 Academic & Scholarly</option>
+        <option value="creative">🎨 Creative & Bold</option>
+      </select>
+    </label>
+
+    <label>
+      AI Provider
+      <select id="settingProvider">
+        <option value="anthropic">Anthropic Claude</option>
+        <option value="openai">OpenAI</option>
+        <option value="gemini">Google Gemini</option>
+        <option value="groq">Groq (free tier, fast)</option>
+        <option value="nvidia">NVIDIA NIM (free tier)</option>
+        <option value="builtin">Use built-in Chrome AI only (no key)</option>
+      </select>
+    </label>
+    <label>
+      API Key
+      <span class="label-hint" id="apiKeyHint">
+        <a id="getApiKeyLink" href="#" target="_blank" style="color: #64b5f6;">Get your API key here 🔗</a>
+      </span>
+      <input type="password" id="settingApiKey" autocomplete="off" spellcheck="false" placeholder="paste your key">
+    </label>
+    <label>
+      Model <span class="label-hint">(optional override)</span>
+      <input type="text" id="settingModel" autocomplete="off" spellcheck="false" placeholder="defaults to a fast/cheap model">
+    </label>
+    <div class="settings-row">
+      <button id="testApiKey" type="button" class="secondary">Test key</button>
+      <span id="testApiKeyStatus" class="test-key-status"></span>
+    </div>
+
+    <div class="settings-row" style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+      <button id="resetDisabledSites" type="button" class="secondary" style="font-size: 11px;">Reset disabled sites</button>
+      <span id="resetDisabledStatus" style="font-size: 11px; color: var(--green);"></span>
+    </div>
+
+    <div style="text-align: center; margin-top: 4px;">
+      <a href="https://github.com/manishankar0922/Bandit/blob/main/PRIVACY.md" target="_blank" style="font-size: 11px; color: var(--dim); text-decoration: underline;">Privacy Policy</a>
+    </div>
+
+    <hr class="modal-divider">
+
+    <div style="display: flex; gap: 8px; justify-content: center;">
+      <button id="exportSettings" type="button" class="secondary" style="font-size: 11px;">💾 Export Backup</button>
+      <button id="importSettings" type="button" class="secondary" style="font-size: 11px;">📂 Import Backup</button>
+    </div>
+    <span id="backupStatus" style="font-size: 11px; color: var(--green); text-align: center; display: block;"></span>
+
+    <button id="closeSettings">Save & Close</button>
+  </div>
+</div>
+
+<script src="storage.js"></script>
+<script src="ai/prompts.js"></script>
+<script src="ai/pipeline.js"></script>
+
+
+<script src="ui/injector.js"></script>
+<script src="ui/modals.js"></script>
+<script src="ui/popup.js"></script>
+<script src="pet/core.js"></script>
+<script src="demo.js"></script>
+
+</body>
+</html>
