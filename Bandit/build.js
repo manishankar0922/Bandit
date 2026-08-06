@@ -58,6 +58,15 @@ async function buildPlatform(platform) {
     minify: false
   });
 
+  await esbuild.build({
+    entryPoints: ['src/popup.js'],
+    bundle: true,
+    outfile: path.join(distDir, 'popup.js'),
+    format: 'iife',
+    target: 'es2020',
+    minify: false
+  });
+
   // Process manifest.json
   const manifestRaw = await fs.promises.readFile(path.join(SRC_DIR, 'manifest.json'), 'utf8');
   const manifest = JSON.parse(manifestRaw);
@@ -81,6 +90,10 @@ async function buildPlatform(platform) {
   await fs.promises.copyFile(
     path.join(__dirname, 'index.html'), 
     path.join(distDir, 'index.html')
+  );
+  await fs.promises.copyFile(
+    path.join(SRC_DIR, 'popup.html'), 
+    path.join(distDir, 'popup.html')
   );
 }
 

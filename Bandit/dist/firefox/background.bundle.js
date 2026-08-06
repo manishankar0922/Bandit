@@ -1,7 +1,6 @@
 (() => {
   // src/storage.js
   var STORAGE_KEY = "rockyState";
-  var DEBOUNCE_MS = 300;
   var DEFAULTS = {
     xp: 0,
     level: 1,
@@ -81,26 +80,6 @@
     } catch (err) {
       console.warn("Bandit: storage.local.set failed, falling back to in-memory state", err);
       storageAvailable = false;
-    }
-  }
-  function saveState(partial, opts = {}) {
-    try {
-      memoryState = mergeDefaults({
-        ...memoryState,
-        ...partial,
-        position: partial && partial.position ? { ...memoryState.position, ...partial.position } : memoryState.position,
-        settings: partial && partial.settings ? { ...memoryState.settings, ...partial.settings } : memoryState.settings,
-        apiKeys: partial && partial.apiKeys ? { ...memoryState.apiKeys, ...partial.apiKeys } : memoryState.apiKeys
-      });
-      pending = memoryState;
-      clearTimeout(debounceTimer);
-      if (opts.immediate) {
-        flush();
-      } else {
-        debounceTimer = setTimeout(flush, DEBOUNCE_MS);
-      }
-    } catch (err) {
-      console.warn("Bandit: saveState failed, state kept in-memory only", err);
     }
   }
   if (typeof window !== "undefined" && window.addEventListener) {
@@ -229,29 +208,6 @@
           api2.tabs.sendMessage(tab.id, { type: "ROCKY_CTX_SUMMARIZE" }).catch(() => {
           });
         }
-      });
-    }
-    if (api2.action) {
-      api2.action.onClicked.addListener(async (tab) => {
-        if (!tab || !tab.id || !tab.url) return;
-        if (tab.url.startsWith("chrome://") || tab.url.startsWith("about:")) return;
-        const urlObj = new URL(tab.url);
-        const host = urlObj.hostname;
-        const st = await loadState();
-        let disabled2 = st.disabledSites || [];
-        const isCurrentlyDisabled = disabled2.includes(host);
-        if (isCurrentlyDisabled) {
-          disabled2 = disabled2.filter((h) => h !== host);
-          api2.action.setBadgeText({ text: "ON", tabId: tab.id });
-          api2.action.setBadgeBackgroundColor({ color: "#4caf50", tabId: tab.id });
-        } else {
-          disabled2.push(host);
-          api2.action.setBadgeText({ text: "OFF", tabId: tab.id });
-          api2.action.setBadgeBackgroundColor({ color: "#f44336", tabId: tab.id });
-        }
-        saveState({ disabledSites: disabled2 }, { immediate: true });
-        api2.tabs.sendMessage(tab.id, { type: "ROCKY_TOGGLE", disabled: !isCurrentlyDisabled }).catch(() => {
-        });
       });
     }
   }

@@ -4,7 +4,8 @@
   "version": "4.0",
   "description": "A pixel-art raccoon that lives on every page — enhances your prompts, summarizes AI chats, and levels up as you use it.",
   "action": {
-    "default_title": "Toggle Bandit on this site"
+    "default_title": "Bandit Settings",
+    "default_popup": "popup.html"
   },
   "permissions": [
     "storage",

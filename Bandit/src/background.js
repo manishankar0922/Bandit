@@ -41,33 +41,7 @@ async function initWorker() {
     });
   }
   
-  // Extension icon click toggles state on active tab
-  if (api.action) {
-    api.action.onClicked.addListener(async (tab) => {
-      if (!tab || !tab.id || !tab.url) return;
-      if (tab.url.startsWith('chrome://') || tab.url.startsWith('about:')) return;
-      
-      const urlObj = new URL(tab.url);
-      const host = urlObj.hostname;
-      
-      const st = await loadState();
-      let disabled = st.disabledSites || [];
-      const isCurrentlyDisabled = disabled.includes(host);
-      
-      if (isCurrentlyDisabled) {
-        disabled = disabled.filter(h => h !== host);
-        api.action.setBadgeText({ text: 'ON', tabId: tab.id });
-        api.action.setBadgeBackgroundColor({ color: '#4caf50', tabId: tab.id });
-      } else {
-        disabled.push(host);
-        api.action.setBadgeText({ text: 'OFF', tabId: tab.id });
-        api.action.setBadgeBackgroundColor({ color: '#f44336', tabId: tab.id });
-      }
-      
-      saveState({ disabledSites: disabled }, { immediate: true });
-      api.tabs.sendMessage(tab.id, { type: 'ROCKY_TOGGLE', disabled: !isCurrentlyDisabled }).catch(() => {});
-    });
-  }
+  // Extension icon uses default_popup in manifest, so we no longer need the action click listener here.
 }
 
 initWorker();
