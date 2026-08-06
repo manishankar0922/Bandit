@@ -2647,4 +2647,10 @@ The user wants you to refine the prompt further with this instruction: "${follow
   } else {
     boot();
   }
+  setInterval(() => {
+    if (!document.getElementById("bandit-extension-host")) {
+      if (state && state.disabledSites && state.disabledSites.includes(window.location.hostname)) return;
+      boot();
+    }
+  }, 2e3);
 })();

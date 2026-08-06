@@ -345,3 +345,13 @@ if (document.readyState === 'loading') {
 } else {
   boot();
 }
+
+// Keep it alive on SPAs (Single Page Applications)
+// ChatGPT and other React apps often destroy and recreate the DOM during navigation.
+setInterval(() => {
+  if (!document.getElementById('bandit-extension-host')) {
+    // Only reboot if it hasn't been explicitly disabled on this site
+    if (state && state.disabledSites && state.disabledSites.includes(window.location.hostname)) return;
+    boot();
+  }
+}, 2000);

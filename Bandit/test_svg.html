@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<body>
+<svg id="test-svg"></svg>
+<script>
+  const frontSvg = document.getElementById('test-svg');
+  function setSafeSvg(element, htmlString) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${htmlString}</svg>`, 'image/svg+xml');
+    
+    // Check if there are parsing errors
+    const errorNode = doc.querySelector('parsererror');
+    if (errorNode) {
+      console.error('Parser error:', errorNode.textContent);
+      document.body.innerHTML += "ERROR: " + errorNode.textContent + "<br>";
+      return;
+    }
+    
+    element.innerHTML = '';
+    while (doc.documentElement.firstChild) {
+      element.appendChild(doc.documentElement.firstChild);
+    }
+  }
+
+  const html = `
+      <g class="tail"><rect/></g>
+      <g class="body-group">
+        <rect/>
+      </g>
+  `;
+  
+  setSafeSvg(frontSvg, html);
+  document.body.innerHTML += "SVG Initial: " + frontSvg.outerHTML.replace(/</g, "&lt;") + "<br>";
+  
+  const bodyG = frontSvg.querySelector('.body-group');
+  const sleepHtml = `<rect class="sleep-eyes"/>`;
+  setSafeSvg(bodyG, sleepHtml);
+  
+  document.body.innerHTML += "SVG After Sleep: " + frontSvg.outerHTML.replace(/</g, "&lt;") + "<br>";
+</script>
+</body>
+</html>
