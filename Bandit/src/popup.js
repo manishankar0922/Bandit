@@ -8,8 +8,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!tab || !tab.url) return;
   const host = new URL(tab.url).hostname;
   
-  api.storage.local.get(['banditState'], (res) => {
-    let state = res.banditState || {};
+  api.storage.local.get(['rockyState'], (res) => {
+    let state = res.rockyState || {};
     let disabled = state.disabledSites || [];
     toggleSite.checked = !disabled.includes(host);
     
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!disabled.includes(host)) disabled.push(host);
       }
       state.disabledSites = disabled;
-      api.storage.local.set({ banditState: state });
+      api.storage.local.set({ rockyState: state });
       
       // Tell content script to toggle
       api.tabs.sendMessage(tab.id, { type: 'ROCKY_TOGGLE', disabled: !isEnabled }).catch(() => {
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     resetAll.addEventListener('click', () => {
       state.disabledSites = [];
-      api.storage.local.set({ banditState: state });
+      api.storage.local.set({ rockyState: state });
       resetAll.textContent = "Cleared!";
       setTimeout(() => { resetAll.textContent = "Reset all disabled sites"; }, 2000);
       toggleSite.checked = true;
