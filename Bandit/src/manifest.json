@@ -11,7 +11,8 @@
     "storage",
     "contextMenus",
     "clipboardWrite",
-    "scripting"
+    "scripting",
+    "activeTab"
   ],
   "host_permissions": [
     "https://api.anthropic.com/*",
