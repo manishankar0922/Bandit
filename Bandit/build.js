@@ -95,6 +95,10 @@ async function buildPlatform(platform) {
     path.join(SRC_DIR, 'popup.html'), 
     path.join(distDir, 'popup.html')
   );
+  await fs.promises.copyFile(
+    TEMPLATE_CSS,
+    path.join(distDir, 'template.css')
+  );
 }
 
 async function build() {

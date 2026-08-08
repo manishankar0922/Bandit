@@ -49,15 +49,21 @@ async function boot() {
   shadowRoot.addEventListener('keyup', (e) => e.stopPropagation());
   shadowRoot.addEventListener('keypress', (e) => e.stopPropagation());
   
-  try {
-    const sheet = new CSSStyleSheet();
-    sheet.replaceSync(TEMPLATE_CSS);
-    shadowRoot.adoptedStyleSheets = [sheet];
-  } catch (err) {
-    // Fallback for older browsers (though Firefox 109+ supports it)
-    const style = document.createElement('style');
-    style.textContent = TEMPLATE_CSS;
-    shadowRoot.appendChild(style);
+  if (api && api.runtime && api.runtime.getURL) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = api.runtime.getURL('template.css');
+    shadowRoot.appendChild(link);
+  } else {
+    try {
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync(TEMPLATE_CSS);
+      shadowRoot.adoptedStyleSheets = [sheet];
+    } catch (err) {
+      const style = document.createElement('style');
+      style.textContent = TEMPLATE_CSS;
+      shadowRoot.appendChild(style);
+    }
   }
   
   const parser = new DOMParser();
@@ -186,7 +192,11 @@ async function boot() {
       if (msg.type === 'ROCKY_CTX_ENHANCE') runEnhance();
       else if (msg.type === 'ROCKY_CTX_SUMMARIZE') runSummarize();
       else if (msg.type === 'ROCKY_TOGGLE') {
-        if (msg.disabled) container.remove();
+        if (msg.disabled) {
+          if (container) container.remove();
+        } else {
+          boot();
+        }
       }
     });
   }

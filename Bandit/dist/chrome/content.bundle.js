@@ -2401,14 +2401,21 @@ ${node.innerText}`);
     shadowRoot.addEventListener("keydown", (e) => e.stopPropagation());
     shadowRoot.addEventListener("keyup", (e) => e.stopPropagation());
     shadowRoot.addEventListener("keypress", (e) => e.stopPropagation());
-    try {
-      const sheet = new CSSStyleSheet();
-      sheet.replaceSync(TEMPLATE_CSS);
-      shadowRoot.adoptedStyleSheets = [sheet];
-    } catch (err) {
-      const style = document.createElement("style");
-      style.textContent = TEMPLATE_CSS;
-      shadowRoot.appendChild(style);
+    if (api2 && api2.runtime && api2.runtime.getURL) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = api2.runtime.getURL("template.css");
+      shadowRoot.appendChild(link);
+    } else {
+      try {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(TEMPLATE_CSS);
+        shadowRoot.adoptedStyleSheets = [sheet];
+      } catch (err) {
+        const style = document.createElement("style");
+        style.textContent = TEMPLATE_CSS;
+        shadowRoot.appendChild(style);
+      }
     }
     const parser = new DOMParser();
     const doc = parser.parseFromString(TEMPLATE_HTML, "text/html");
@@ -2514,7 +2521,11 @@ ${node.innerText}`);
         if (msg.type === "ROCKY_CTX_ENHANCE") runEnhance();
         else if (msg.type === "ROCKY_CTX_SUMMARIZE") runSummarize();
         else if (msg.type === "ROCKY_TOGGLE") {
-          if (msg.disabled) container.remove();
+          if (msg.disabled) {
+            if (container) container.remove();
+          } else {
+            boot();
+          }
         }
       });
     }
