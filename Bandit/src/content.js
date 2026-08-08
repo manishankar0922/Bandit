@@ -49,22 +49,9 @@ async function boot() {
   shadowRoot.addEventListener('keyup', (e) => e.stopPropagation());
   shadowRoot.addEventListener('keypress', (e) => e.stopPropagation());
   
-  if (api && api.runtime && api.runtime.getURL) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = api.runtime.getURL('template.css');
-    shadowRoot.appendChild(link);
-  } else {
-    try {
-      const sheet = new CSSStyleSheet();
-      sheet.replaceSync(TEMPLATE_CSS);
-      shadowRoot.adoptedStyleSheets = [sheet];
-    } catch (err) {
-      const style = document.createElement('style');
-      style.textContent = TEMPLATE_CSS;
-      shadowRoot.appendChild(style);
-    }
-  }
+  const style = document.createElement('style');
+  style.textContent = TEMPLATE_CSS;
+  shadowRoot.appendChild(style);
   
   const parser = new DOMParser();
   const doc = parser.parseFromString(TEMPLATE_HTML, 'text/html');

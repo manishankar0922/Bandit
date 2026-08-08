@@ -38,8 +38,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "index.html",
-        "template.css"
+        "index.html"
       ],
       "matches": [
         "<all_urls>"
