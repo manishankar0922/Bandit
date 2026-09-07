@@ -302,14 +302,30 @@ async function runSummarize() {
     } catch (err) {
       // Show manual copy dialog if clipboard fails
       const { modal, close } = createDialog(null, shadowRoot);
-      modal.innerHTML = `
-        <h3 style="margin-bottom:8px">📋 Chat Summary</h3>
-        <p style="font-size:12px;margin-bottom:12px">Copy this to continue the context in a new chat:</p>
-        <textarea readonly style="width:100%;min-height:120px;font-family:monospace;font-size:11px;background:var(--bg);color:var(--text);padding:8px;border:1px solid var(--line);border-radius:6px;margin-bottom:12px">${result}</textarea>
-        <button id="sm-close">Done</button>
-      `;
-      modal.querySelector('#sm-close').addEventListener('click', close);
-      modal.querySelector('textarea').select();
+      const h3 = document.createElement('h3');
+      h3.style.marginBottom = '8px';
+      h3.textContent = '📋 Chat Summary';
+
+      const p = document.createElement('p');
+      p.style.cssText = 'font-size:12px;margin-bottom:12px';
+      p.textContent = 'Copy this to continue the context in a new chat:';
+
+      const textarea = document.createElement('textarea');
+      textarea.readOnly = true;
+      textarea.style.cssText = 'width:100%;min-height:120px;font-family:monospace;font-size:11px;background:var(--bg);color:var(--text);padding:8px;border:1px solid var(--line);border-radius:6px;margin-bottom:12px';
+      textarea.value = result;
+
+      const btn = document.createElement('button');
+      btn.id = 'sm-close';
+      btn.textContent = 'Done';
+      btn.addEventListener('click', close);
+
+      modal.appendChild(h3);
+      modal.appendChild(p);
+      modal.appendChild(textarea);
+      modal.appendChild(btn);
+
+      textarea.select();
       petEngine.say("Here is your summary! 📋", 3000);
       petEngine.addXP(5);
     }

@@ -1,6 +1,6 @@
 {
   "name": "bandit",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "Bandit is a pixel-art raccoon that lives on every webpage. He acts as your AI sidekick, helping you write better prompts, summarize long chats, and providing a fun, interactive desktop-pet experience!",
   "main": "background.js",
   "scripts": {
@@ -12,7 +12,5 @@
   "devDependencies": {
     "esbuild": "^0.28.1"
   },
-  "dependencies": {
-    "puppeteer": "^25.4.0"
-  }
+  "dependencies": {}
 }

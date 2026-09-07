@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bandit — AI Prompt Companion",
-  "version": "4.0",
+  "version": "5.0",
   "description": "A pixel-art raccoon that lives on every page — enhances your prompts, summarizes AI chats, and levels up as you use it.",
   "action": {
     "default_title": "Bandit Settings",
@@ -26,8 +26,16 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "bandit@vibecoding.ext",
-      "strict_min_version": "109.0"
+      "id": "rocky@vibecoding.pet",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   },
   "content_scripts": [

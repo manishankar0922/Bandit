@@ -368,7 +368,32 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
     }
     return el;
   }
+  function getChatGPTInput() {
+    const pm = document.querySelector('#prompt-textarea[contenteditable="true"]');
+    if (pm && pm.offsetParent !== null) return pm;
+    const ta = document.querySelector("#prompt-textarea");
+    if (ta && ta.offsetParent !== null) return ta;
+    return null;
+  }
+  function getGeminiInput() {
+    const ql = document.querySelector('rich-textarea .ql-editor[contenteditable="true"]');
+    if (ql && ql.offsetParent !== null) return ql;
+    const rt = document.querySelector('rich-textarea [contenteditable="true"]');
+    if (rt && rt.offsetParent !== null) return rt;
+    const ta = document.querySelector(".input-area textarea, .text-input-field textarea");
+    if (ta && ta.offsetParent !== null) return ta;
+    return null;
+  }
   function getHostInput() {
+    const host = window.location.hostname;
+    if (host.includes("chatgpt.com") || host.includes("chat.openai.com")) {
+      const el = getChatGPTInput();
+      if (el) return el;
+    }
+    if (host.includes("gemini.google.com")) {
+      const el = getGeminiInput();
+      if (el) return el;
+    }
     const active = getDeepActiveElement();
     if (active && (active.tagName === "TEXTAREA" || active.tagName === "INPUT" || active.isContentEditable)) {
       if (active.disabled || active.readOnly) return null;
@@ -391,11 +416,27 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
     }
     return best;
   }
+  function dispatchReactInput(el) {
+    try {
+      el.dispatchEvent(new InputEvent("input", { bubbles: true, cancelable: true, inputType: "insertText" }));
+    } catch (err) {
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }
   function simulatePaste(el, text) {
     el.focus();
     if (el.isContentEditable) {
-      document.execCommand("selectAll", false, null);
-      document.execCommand("insertText", false, text);
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      const success = document.execCommand("insertText", false, text);
+      if (!success) {
+        el.textContent = text;
+      }
+      dispatchReactInput(el);
     } else {
       el.select();
       const success = document.execCommand("insertText", false, text);
@@ -405,9 +446,8 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
         if (el.tagName === "INPUT" && nativeInputSetter) nativeInputSetter.call(el, text);
         else if (el.tagName === "TEXTAREA" && nativeTextareaSetter) nativeTextareaSetter.call(el, text);
         else el.value = text;
-        el.dispatchEvent(new Event("input", { bubbles: true }));
-        el.dispatchEvent(new Event("change", { bubbles: true }));
       }
+      dispatchReactInput(el);
     }
   }
   function setPromptText(hostInput, text) {
@@ -1540,7 +1580,7 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
     function setSafeSvg(element, htmlString) {
       const parser = new DOMParser();
       const doc2 = parser.parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${htmlString}</svg>`, "image/svg+xml");
-      element.innerHTML = "";
+      element.replaceChildren();
       while (doc2.documentElement.firstChild) {
         element.appendChild(doc2.documentElement.firstChild);
       }
@@ -1638,11 +1678,20 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
         pet.classList.remove("face-left");
       }
     }, { passive: true });
+    function renderMessage(container2, text) {
+      if (!container2) return;
+      container2.textContent = "";
+      const parts = String(text || "").split("<br>");
+      parts.forEach((part, i) => {
+        if (i > 0) container2.appendChild(document.createElement("br"));
+        container2.appendChild(document.createTextNode(part));
+      });
+    }
     let sayTimer = null;
     function say(text, timeoutMs = 4e3) {
       if (!bubble) return;
       if (followUpForm) followUpForm.style.display = "none";
-      if (bubbleText) bubbleText.innerHTML = text;
+      renderMessage(bubbleText, text);
       bubble.classList.add("show");
       clearTimeout(sayTimer);
       if (timeoutMs > 0) {
@@ -1652,7 +1701,7 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
     function askForRefinement(promptHtml, onRefine) {
       if (!bubble || !bubbleText || !followUpForm) return;
       clearTimeout(sayTimer);
-      bubbleText.innerHTML = promptHtml;
+      renderMessage(bubbleText, promptHtml);
       followUpForm.style.display = "block";
       bubble.classList.add("show");
       followUpInput.value = "";
@@ -1685,7 +1734,11 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
       let nextXP = level * 20;
       let pct = Math.min(100, Math.max(0, xp / nextXP * 100));
       xpFill.style.width = pct + "%";
-      xpLabel.innerHTML = `${petName.toUpperCase()} \xB7 <b>LVL ${level}</b> \xB7 ${xp}/${nextXP} XP`;
+      xpLabel.textContent = `${petName.toUpperCase()} \xB7 `;
+      const b = document.createElement("b");
+      b.textContent = `LVL ${level}`;
+      xpLabel.appendChild(b);
+      xpLabel.appendChild(document.createTextNode(` \xB7 ${xp}/${nextXP} XP`));
     }
     function addXP(amount) {
       xp += amount;
@@ -1852,7 +1905,7 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
     const host = window.location.hostname;
     let text = "";
     try {
-      if (host.includes("chatgpt.com")) {
+      if (host.includes("chatgpt.com") || host.includes("chat.openai.com")) {
         text = scrapeChatGPT();
       } else if (host.includes("claude.ai")) {
         text = scrapeClaude();
@@ -1868,13 +1921,35 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
   }
   function scrapeChatGPT() {
     const parts = [];
-    const messages = document.querySelectorAll("article[data-message-author-role]");
-    if (messages.length) {
-      for (const msg of messages) {
+    const articles = document.querySelectorAll("article[data-message-author-role]");
+    if (articles.length) {
+      for (const msg of articles) {
         const role = msg.getAttribute("data-message-author-role");
-        const content = msg.querySelector(".markdown, .whitespace-pre-wrap");
+        const content = msg.querySelector(".markdown, .whitespace-pre-wrap, .text-message");
         if (role && content) {
           parts.push(`[${role.toUpperCase()}]
+${content.innerText}`);
+        }
+      }
+      return parts.join("\n\n");
+    }
+    const divMsgs = document.querySelectorAll("div[data-message-author-role]");
+    if (divMsgs.length) {
+      for (const msg of divMsgs) {
+        const role = msg.getAttribute("data-message-author-role");
+        parts.push(`[${role.toUpperCase()}]
+${msg.innerText}`);
+      }
+      return parts.join("\n\n");
+    }
+    const turns = document.querySelectorAll('[data-testid^="conversation-turn-"]');
+    if (turns.length) {
+      for (const turn of turns) {
+        const isUser = turn.querySelector('[data-message-author-role="user"]');
+        const role = isUser ? "USER" : "ASSISTANT";
+        const content = turn.querySelector(".markdown, .whitespace-pre-wrap, .text-message");
+        if (content) {
+          parts.push(`[${role}]
 ${content.innerText}`);
         }
       }
@@ -1884,8 +1959,6 @@ ${content.innerText}`);
   }
   function scrapeClaude() {
     const parts = [];
-    const userMessages = document.querySelectorAll(".font-user-message");
-    const aiMessages = document.querySelectorAll(".font-claude-message");
     const container2 = document.querySelector(".flex-1.flex.flex-col.gap-3, .flex-1.flex.flex-col.items-center");
     if (container2) {
       const children = container2.querySelectorAll(".font-user-message, .font-claude-message");
@@ -1896,19 +1969,38 @@ ${child.innerText}`);
       }
       return parts.join("\n\n");
     }
-    return "";
+    const userMsgs = document.querySelectorAll(".font-user-message");
+    const claudeMsgs = document.querySelectorAll(".font-claude-message");
+    for (const m of userMsgs) parts.push(`[USER]
+${m.innerText}`);
+    for (const m of claudeMsgs) parts.push(`[CLAUDE]
+${m.innerText}`);
+    return parts.join("\n\n");
   }
   function scrapeGemini() {
     const parts = [];
-    const queries = document.querySelectorAll("query-content");
-    const responses = document.querySelectorAll("message-content");
-    const allNodes = document.querySelectorAll("query-content, message-content");
-    for (const node of allNodes) {
-      const role = node.tagName.toLowerCase() === "query-content" ? "USER" : "GEMINI";
-      parts.push(`[${role}]
-${node.innerText}`);
+    const allNodes = document.querySelectorAll("user-query, model-response, query-content, message-content");
+    if (allNodes.length) {
+      for (const node of allNodes) {
+        const tag = node.tagName.toLowerCase();
+        const role = tag === "user-query" || tag === "query-content" ? "USER" : "GEMINI";
+        const text = node.innerText?.trim();
+        if (text) parts.push(`[${role}]
+${text}`);
+      }
+      return parts.join("\n\n");
     }
-    return parts.join("\n\n");
+    const turns = document.querySelectorAll(".conversation-container .turn-content, .chat-turn");
+    if (turns.length) {
+      for (const turn of turns) {
+        const isUser = turn.classList.contains("user-turn") || turn.querySelector(".query-content, user-query");
+        const role = isUser ? "USER" : "GEMINI";
+        parts.push(`[${role}]
+${turn.innerText}`);
+      }
+      return parts.join("\n\n");
+    }
+    return "";
   }
   function scrapeGeneric() {
     const main = document.querySelector("main") || document.body;
@@ -2610,14 +2702,25 @@ The user wants you to refine the prompt further with this instruction: "${follow
         petEngine.addXP(5);
       } catch (err) {
         const { modal, close } = createDialog(null, shadowRoot);
-        modal.innerHTML = `
-        <h3 style="margin-bottom:8px">\u{1F4CB} Chat Summary</h3>
-        <p style="font-size:12px;margin-bottom:12px">Copy this to continue the context in a new chat:</p>
-        <textarea readonly style="width:100%;min-height:120px;font-family:monospace;font-size:11px;background:var(--bg);color:var(--text);padding:8px;border:1px solid var(--line);border-radius:6px;margin-bottom:12px">${result}</textarea>
-        <button id="sm-close">Done</button>
-      `;
-        modal.querySelector("#sm-close").addEventListener("click", close);
-        modal.querySelector("textarea").select();
+        const h3 = document.createElement("h3");
+        h3.style.marginBottom = "8px";
+        h3.textContent = "\u{1F4CB} Chat Summary";
+        const p = document.createElement("p");
+        p.style.cssText = "font-size:12px;margin-bottom:12px";
+        p.textContent = "Copy this to continue the context in a new chat:";
+        const textarea = document.createElement("textarea");
+        textarea.readOnly = true;
+        textarea.style.cssText = "width:100%;min-height:120px;font-family:monospace;font-size:11px;background:var(--bg);color:var(--text);padding:8px;border:1px solid var(--line);border-radius:6px;margin-bottom:12px";
+        textarea.value = result;
+        const btn = document.createElement("button");
+        btn.id = "sm-close";
+        btn.textContent = "Done";
+        btn.addEventListener("click", close);
+        modal.appendChild(h3);
+        modal.appendChild(p);
+        modal.appendChild(textarea);
+        modal.appendChild(btn);
+        textarea.select();
         petEngine.say("Here is your summary! \u{1F4CB}", 3e3);
         petEngine.addXP(5);
       }

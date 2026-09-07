@@ -92,6 +92,10 @@ async function buildPlatform(platform) {
     path.join(distDir, 'index.html')
   );
   await fs.promises.copyFile(
+    path.join(__dirname, 'demo_mock.js'), 
+    path.join(distDir, 'demo_mock.js')
+  );
+  await fs.promises.copyFile(
     path.join(SRC_DIR, 'popup.html'), 
     path.join(distDir, 'popup.html')
   );

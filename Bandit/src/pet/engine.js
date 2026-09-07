@@ -46,7 +46,7 @@ export function initPet(shadowRoot, initialState, callbacks) {
   function setSafeSvg(element, htmlString) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${htmlString}</svg>`, 'image/svg+xml');
-    element.innerHTML = ''; // This is safe because it's an empty string
+    element.replaceChildren();
     while (doc.documentElement.firstChild) {
       element.appendChild(doc.documentElement.firstChild);
     }
@@ -166,11 +166,21 @@ export function initPet(shadowRoot, initialState, callbacks) {
     }
   }, { passive: true });
 
+  function renderMessage(container, text) {
+    if (!container) return;
+    container.textContent = '';
+    const parts = String(text || '').split('<br>');
+    parts.forEach((part, i) => {
+      if (i > 0) container.appendChild(document.createElement('br'));
+      container.appendChild(document.createTextNode(part));
+    });
+  }
+
   let sayTimer = null;
   function say(text, timeoutMs = 4000) {
     if (!bubble) return;
     if (followUpForm) followUpForm.style.display = 'none';
-    if (bubbleText) bubbleText.innerHTML = text;
+    renderMessage(bubbleText, text);
     bubble.classList.add('show');
     clearTimeout(sayTimer);
     if (timeoutMs > 0) {
@@ -181,7 +191,7 @@ export function initPet(shadowRoot, initialState, callbacks) {
   function askForRefinement(promptHtml, onRefine) {
     if (!bubble || !bubbleText || !followUpForm) return;
     clearTimeout(sayTimer);
-    bubbleText.innerHTML = promptHtml;
+    renderMessage(bubbleText, promptHtml);
     followUpForm.style.display = 'block';
     bubble.classList.add('show');
     
@@ -223,7 +233,11 @@ export function initPet(shadowRoot, initialState, callbacks) {
     let nextXP = level * 20;
     let pct = Math.min(100, Math.max(0, (xp / nextXP) * 100));
     xpFill.style.width = pct + '%';
-    xpLabel.innerHTML = `${petName.toUpperCase()} · <b>LVL ${level}</b> · ${xp}/${nextXP} XP`;
+    xpLabel.textContent = `${petName.toUpperCase()} · `;
+    const b = document.createElement('b');
+    b.textContent = `LVL ${level}`;
+    xpLabel.appendChild(b);
+    xpLabel.appendChild(document.createTextNode(` · ${xp}/${nextXP} XP`));
   }
 
   function addXP(amount) {
