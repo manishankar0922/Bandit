@@ -806,9 +806,12 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
     });
     const host = container2 || document.body;
     host.appendChild(dialog);
+    dialog.showModal();
     return {
       modal: dialog,
-      show: () => dialog.showModal(),
+      show: () => {
+        if (!dialog.open) dialog.showModal();
+      },
       close: () => dialog.close()
     };
   }
@@ -1604,7 +1607,7 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
     `);
     }
     function applyAccessories(lv) {
-      accessories = { shades: lv >= 3, scarf: lv >= 5, crown: lv >= 7 };
+      accessories = { shades: lv >= 2, scarf: lv >= 3, crown: lv >= 4 };
       renderSprite();
     }
     applyAccessories(level);
@@ -1824,6 +1827,65 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
       }
     }
     if (wrap) wrap.addEventListener("pointerdown", onPointerDown);
+    let holdTimer = null;
+    if (pet) {
+      pet.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
+        holdTimer = setTimeout(() => {
+          holdTimer = null;
+          pokeActivity();
+          wrap.classList.add("spinning");
+          setTimeout(() => wrap.classList.remove("spinning"), 700);
+          if (Math.random() < 0.3) {
+            addXP(2);
+            say("Woohoo! Spin trick! \u{1F389}", 2500);
+          } else {
+            say("*spins!*", 1500);
+          }
+        }, 600);
+      });
+      pet.addEventListener("pointerup", () => {
+        if (holdTimer) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+        }
+      });
+      pet.addEventListener("pointercancel", () => {
+        if (holdTimer) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+        }
+      });
+    }
+    let petMoveCount = 0;
+    let lastPetTime = 0;
+    if (pet) {
+      pet.addEventListener("mousemove", (e) => {
+        if (isDragging || sleepMode) return;
+        petMoveCount++;
+        if (petMoveCount >= 8) {
+          petMoveCount = 0;
+          const now = Date.now();
+          if (now - lastPetTime < 2e3) return;
+          lastPetTime = now;
+          pokeActivity();
+          addXP(1);
+          say("Purrrr~ \u{1F495}", 1500);
+          const heart = document.createElement("span");
+          heart.textContent = "\u2764\uFE0F";
+          heart.className = "heart";
+          const r = wrap.getBoundingClientRect();
+          heart.style.left = r.left + r.width / 2 - 8 + (Math.random() * 20 - 10) + "px";
+          heart.style.top = r.top - 10 + "px";
+          const rootEl = shadowRoot2.getElementById("rocky-root") || shadowRoot2;
+          rootEl.appendChild(heart);
+          setTimeout(() => heart.remove(), 1e3);
+        }
+      }, { passive: true });
+      pet.addEventListener("mouseleave", () => {
+        petMoveCount = 0;
+      });
+    }
     function toggleMenu() {
       pokeActivity();
       if (wrap.classList.contains("show-menu")) {
@@ -1894,7 +1956,7 @@ USER CUSTOM RULES (CRITICAL): ${customInstructions.trim()}` : "";
         setTimeout(() => {
           apple.remove();
           wrap.classList.remove("happy");
-          addXP(1);
+          addXP(5);
         }, 1e3);
       }
     };
@@ -2614,10 +2676,12 @@ ${turn.innerText}`);
     });
     const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
     if (state.lastVisitDay !== today) {
-      callbacks.persist({ lastVisitDay: today, streak: (state.streak || 0) + 1 });
+      const newStreak = (state.streak || 0) + 1;
+      callbacks.persist({ lastVisitDay: today, streak: newStreak });
       setTimeout(() => {
-        petEngine.say(`Welcome back! \u{1F43E}<br>Streak: ${state.streak + 1} days`, 4e3);
+        petEngine.say(`Welcome back! \u{1F43E}<br>Streak: ${newStreak} days`, 4e3);
         petEngine.playAnimation("happy", 1500);
+        petEngine.addXP(5);
       }, 1e3);
     }
   }
@@ -2653,9 +2717,11 @@ The user wants you to refine the prompt further with this instruction: "${follow
         petEngine.say("That looks like gibberish to me! Try writing a real sentence.", 4e3);
       } else {
         setPromptText(input, result);
-        petEngine.addXP(2);
+        petEngine.addXP(10);
         saveHistory(followUpText ? "refine" : "enhance", result);
-        petEngine.askForRefinement("Done! \u2728<br>Need tweaks?", (refinement) => {
+        const beforeWords = text.trim().split(/\s+/).length;
+        const afterWords = result.trim().split(/\s+/).length;
+        petEngine.askForRefinement(`Done! \u2728 ${beforeWords} \u2192 ${afterWords} words<br>Need tweaks?`, (refinement) => {
           runEnhance(refinement);
         });
       }
@@ -2699,7 +2765,7 @@ The user wants you to refine the prompt further with this instruction: "${follow
       try {
         await navigator.clipboard.writeText(result);
         petEngine.say("Summary copied to clipboard! \u{1F4CB}\u2728", 4e3);
-        petEngine.addXP(5);
+        petEngine.addXP(15);
       } catch (err) {
         const { modal, close } = createDialog(null, shadowRoot);
         const h3 = document.createElement("h3");
@@ -2722,7 +2788,7 @@ The user wants you to refine the prompt further with this instruction: "${follow
         modal.appendChild(btn);
         textarea.select();
         petEngine.say("Here is your summary! \u{1F4CB}", 3e3);
-        petEngine.addXP(5);
+        petEngine.addXP(15);
       }
     } catch (err) {
       petEngine.say("Failed to summarize \u{1F616}<br>" + (err.message || String(err)), 5e3);

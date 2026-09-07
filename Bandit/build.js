@@ -103,9 +103,14 @@ async function buildPlatform(platform) {
 
 async function build() {
   try {
+    // Clean dist before building
+    const distDir = path.join(__dirname, 'dist');
+    if (fs.existsSync(distDir)) {
+      fs.rmSync(distDir, { recursive: true, force: true });
+    }
+    
     await buildPlatform('firefox');
-    await buildPlatform('chrome');
-    console.log('Build complete! Generated dist/firefox and dist/chrome');
+    console.log('Build complete! Generated dist/firefox');
   } catch (err) {
     console.error('Build failed:', err);
     process.exit(1);

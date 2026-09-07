@@ -27,9 +27,10 @@ export function createDialog(onClose, container) {
 
   const host = container || document.body;
   host.appendChild(dialog);
+  dialog.showModal();
   return {
     modal: dialog,
-    show: () => dialog.showModal(),
+    show: () => { if (!dialog.open) dialog.showModal(); },
     close: () => dialog.close()
   };
 }

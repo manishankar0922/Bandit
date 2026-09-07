@@ -197,10 +197,12 @@ async function boot() {
   // Welcome back logic (once per day)
   const today = new Date().toISOString().split('T')[0];
   if (state.lastVisitDay !== today) {
-    callbacks.persist({ lastVisitDay: today, streak: (state.streak || 0) + 1 });
+    const newStreak = (state.streak || 0) + 1;
+    callbacks.persist({ lastVisitDay: today, streak: newStreak });
     setTimeout(() => {
-      petEngine.say(`Welcome back! 🐾<br>Streak: ${state.streak + 1} days`, 4000);
+      petEngine.say(`Welcome back! 🐾<br>Streak: ${newStreak} days`, 4000);
       petEngine.playAnimation('happy', 1500);
+      petEngine.addXP(5); // Daily streak bonus
     }, 1000);
   }
 }
@@ -242,11 +244,15 @@ async function runEnhance(followUpText = null) {
       petEngine.say("That looks like gibberish to me! Try writing a real sentence.", 4000);
     } else {
       setPromptText(input, result);
-      petEngine.addXP(2);
+      petEngine.addXP(10);
       saveHistory(followUpText ? 'refine' : 'enhance', result);
       
+      // Word count indicator
+      const beforeWords = text.trim().split(/\s+/).length;
+      const afterWords = result.trim().split(/\s+/).length;
+      
       // Enter the Continuous Feature Loop
-      petEngine.askForRefinement("Done! ✨<br>Need tweaks?", (refinement) => {
+      petEngine.askForRefinement(`Done! ✨ ${beforeWords} → ${afterWords} words<br>Need tweaks?`, (refinement) => {
         runEnhance(refinement);
       });
     }
@@ -298,7 +304,7 @@ async function runSummarize() {
     try {
       await navigator.clipboard.writeText(result);
       petEngine.say("Summary copied to clipboard! 📋✨", 4000);
-      petEngine.addXP(5);
+      petEngine.addXP(15);
     } catch (err) {
       // Show manual copy dialog if clipboard fails
       const { modal, close } = createDialog(null, shadowRoot);
@@ -327,7 +333,7 @@ async function runSummarize() {
 
       textarea.select();
       petEngine.say("Here is your summary! 📋", 3000);
-      petEngine.addXP(5);
+      petEngine.addXP(15);
     }
   } catch (err) {
     petEngine.say("Failed to summarize 😖<br>" + (err.message || String(err)), 5000);

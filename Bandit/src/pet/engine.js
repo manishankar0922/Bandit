@@ -74,7 +74,7 @@ export function initPet(shadowRoot, initialState, callbacks) {
   }
 
   function applyAccessories(lv) {
-    accessories = { shades: lv >= 3, scarf: lv >= 5, crown: lv >= 7 };
+    accessories = { shades: lv >= 2, scarf: lv >= 3, crown: lv >= 4 };
     renderSprite();
   }
   applyAccessories(level);
@@ -341,6 +341,64 @@ export function initPet(shadowRoot, initialState, callbacks) {
 
   if (wrap) wrap.addEventListener('pointerdown', onPointerDown);
 
+  // --- HOLD-CLICK SPIN TRICK ---
+  let holdTimer = null;
+  if (pet) {
+    pet.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      holdTimer = setTimeout(() => {
+        holdTimer = null;
+        pokeActivity();
+        wrap.classList.add('spinning');
+        setTimeout(() => wrap.classList.remove('spinning'), 700);
+        // 30% chance of +2 XP
+        if (Math.random() < 0.3) {
+          addXP(2);
+          say('Woohoo! Spin trick! 🎉', 2500);
+        } else {
+          say('*spins!*', 1500);
+        }
+      }, 600);
+    });
+    pet.addEventListener('pointerup', () => {
+      if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    });
+    pet.addEventListener('pointercancel', () => {
+      if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    });
+  }
+
+  // --- PETTING (mouse hover rub) ---
+  let petMoveCount = 0;
+  let lastPetTime = 0;
+  if (pet) {
+    pet.addEventListener('mousemove', (e) => {
+      if (isDragging || sleepMode) return;
+      petMoveCount++;
+      // Require rapid back-and-forth movement ("rubbing")
+      if (petMoveCount >= 8) {
+        petMoveCount = 0;
+        const now = Date.now();
+        if (now - lastPetTime < 2000) return; // cooldown
+        lastPetTime = now;
+        pokeActivity();
+        addXP(1);
+        say('Purrrr~ 💕', 1500);
+        // Spawn a floating heart
+        const heart = document.createElement('span');
+        heart.textContent = '❤️';
+        heart.className = 'heart';
+        const r = wrap.getBoundingClientRect();
+        heart.style.left = (r.left + r.width / 2 - 8 + (Math.random() * 20 - 10)) + 'px';
+        heart.style.top = (r.top - 10) + 'px';
+        const rootEl = shadowRoot.getElementById('rocky-root') || shadowRoot;
+        rootEl.appendChild(heart);
+        setTimeout(() => heart.remove(), 1000);
+      }
+    }, { passive: true });
+    pet.addEventListener('mouseleave', () => { petMoveCount = 0; });
+  }
+
   // --- MENU ---
   function toggleMenu() {
     pokeActivity();
@@ -415,7 +473,7 @@ export function initPet(shadowRoot, initialState, callbacks) {
       setTimeout(() => {
         apple.remove();
         wrap.classList.remove('happy');
-        addXP(1);
+        addXP(5);
       }, 1000);
     }
   };
