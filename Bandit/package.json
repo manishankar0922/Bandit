@@ -1,12 +1,15 @@
 {
   "name": "bandit",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "description": "Bandit is a pixel-art raccoon that lives on every webpage. He acts as your AI sidekick, helping you write better prompts, summarize long chats, and providing a fun, interactive desktop-pet experience!",
   "main": "background.js",
   "scripts": {
     "build": "node build.js all",
     "build:firefox": "node build.js firefox",
-    "build:chrome": "node build.js chrome"
+    "build:chrome": "node build.js chrome",
+    "package:firefox": "node build.js firefox && cd dist/firefox && zip -r ../bandit-firefox-v6.0.0.zip . -x \"*.DS_Store*\"",
+    "package:chrome": "node build.js chrome && cd dist/chrome && zip -r ../bandit-chrome-v6.0.0.zip . -x \"*.DS_Store*\"",
+    "package:all": "npm run package:firefox && npm run package:chrome"
   },
   "keywords": [],
   "author": "",

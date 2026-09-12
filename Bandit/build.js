@@ -99,6 +99,27 @@ async function buildPlatform(platform) {
     path.join(SRC_DIR, 'popup.html'), 
     path.join(distDir, 'popup.html')
   );
+
+  packagePlatform(platform, manifest.version);
+}
+
+const { execSync } = require('child_process');
+
+function packagePlatform(platform, version) {
+  const distDir = path.join(__dirname, 'dist', platform);
+  const zipName = `bandit-${platform}-v${version}.zip`;
+  const zipPath = path.join(__dirname, 'dist', zipName);
+  const rootZipPath = path.join(__dirname, zipName);
+  if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+  if (fs.existsSync(rootZipPath)) fs.unlinkSync(rootZipPath);
+
+  try {
+    execSync(`cd "${distDir}" && zip -q -r "${zipPath}" . -x "*.DS_Store*"`);
+    fs.copyFileSync(zipPath, rootZipPath);
+    console.log(`📦 Packaged ${platform} into ${zipName}`);
+  } catch (err) {
+    console.warn(`Could not create zip for ${platform}:`, err.message);
+  }
 }
 
 async function build() {

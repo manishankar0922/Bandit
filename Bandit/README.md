@@ -7,7 +7,7 @@
 [![Chrome / Chromium](https://img.shields.io/badge/Chromium-Supported-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge)](#-chromium-installation)
 [![Prompt Templates](https://img.shields.io/badge/Templates-30_Curated-f5a524?style=for-the-badge)](#-prompt-templates-library)
 [![No Telemetry](https://img.shields.io/badge/telemetry-none-2ea44f?style=for-the-badge)](PRIVACY.md)
-[![Version](https://img.shields.io/badge/version-5.0-lightgrey?style=for-the-badge)](#)
+[![Version](https://img.shields.io/badge/version-6.0.0-lightgrey?style=for-the-badge)](#)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
 **Feed him rough prompts. He gives back engineered treasure.**

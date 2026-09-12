@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bandit — AI Prompt Companion",
-  "version": "5.0",
+  "version": "6.0.0",
   "description": "A pixel-art raccoon that lives on every page — enhances your prompts, summarizes AI chats, and levels up as you use it.",
   "action": {
     "default_title": "Bandit Settings",
