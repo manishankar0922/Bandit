@@ -9,7 +9,9 @@ export function showHistoryModal({
   h.textContent = '📜 History';
   modal.appendChild(h);
 
-  if (!copyHistory.length) {
+  const historyItems = Array.isArray(copyHistory) ? copyHistory : [];
+
+  if (!historyItems.length) {
     const empty = document.createElement('div');
     empty.style.cssText = 'font-size:12px;color:#8a95a5;line-height:1.6';
     empty.textContent = 'Nothing here yet — enhance a prompt or summarize a chat, and it lands here for re-copying.';
@@ -29,22 +31,24 @@ export function showHistoryModal({
     modal.appendChild(clearBtn);
   }
 
-  copyHistory.forEach(item => {
+  historyItems.forEach(item => {
+    if (!item) return;
     const row = document.createElement('button');
     row.type = 'button';
     row.className = 'secondary';
     row.style.cssText = 'text-align:left;white-space:normal;line-height:1.5;display:block;width:100%';
     const icon = item.type === 'summary' ? '📋' : '✨';
-    const preview = item.text.length > 90 ? item.text.slice(0, 90) + '…' : item.text;
+    const text = item.text || '';
+    const preview = text.length > 90 ? text.slice(0, 90) + '…' : text;
     const meta = document.createElement('div');
     meta.style.cssText = 'font-size:10px;opacity:.6;margin-bottom:3px';
-    meta.textContent = `${icon} ${item.type} · ${timeAgo(item.at)} · click to copy`;
+    meta.textContent = `${icon} ${item.type || 'entry'} · ${timeAgo ? timeAgo(item.at) : 'recently'} · click to copy`;
     const body = document.createElement('div');
     body.textContent = preview;
     row.appendChild(meta);
     row.appendChild(body);
     row.addEventListener('click', () => {
-      copyToClipboard(item.text)
+      copyToClipboard(text)
         .then(() => { showToast('copied 📋'); close(); })
         .catch(() => { showToast("couldn't copy 😖"); });
     });

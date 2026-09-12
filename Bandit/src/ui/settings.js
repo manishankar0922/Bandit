@@ -19,6 +19,7 @@ export function initSettings(doc, stateObj, callbacks) {
   const importBtn = doc.getElementById('importSettings');
   const backupStatus = doc.getElementById('backupStatus');
   const getApiKeyLink = doc.getElementById('getApiKeyLink');
+  const openTemplatesBtn = doc.getElementById('openTemplatesFromSettings');
 
   const API_LINKS = {
     anthropic: 'https://console.anthropic.com/settings/keys',
@@ -95,11 +96,12 @@ export function initSettings(doc, stateObj, callbacks) {
     const newApiKeys = { ...stateObj.aiSettings.apiKeys };
     if (chosenProvider !== 'builtin') newApiKeys[chosenProvider] = enteredKey;
     
+    const modelOverride = (settingModel ? settingModel.value.trim() : '') || (settingCustomModel ? settingCustomModel.value.trim() : '') || stateObj.aiSettings.model || '';
     stateObj.aiSettings = {
       provider: chosenProvider,
       apiKey: enteredKey,
-      model: settingModel ? settingModel.value.trim() : stateObj.aiSettings.model,
-      customModel: settingCustomModel ? settingCustomModel.value.trim() : stateObj.aiSettings.customModel,
+      model: modelOverride,
+      customModel: modelOverride,
       customInstructions: settingCustomInstructions ? settingCustomInstructions.value.trim() : stateObj.aiSettings.customInstructions,
       apiKeys: newApiKeys,
     };
@@ -137,14 +139,25 @@ export function initSettings(doc, stateObj, callbacks) {
     saveSettings();
   });
 
+  if (openTemplatesBtn) {
+    openTemplatesBtn.addEventListener('click', () => {
+      if (settingsModal) settingsModal.classList.remove('show');
+      if (callbacks.openTemplates) callbacks.openTemplates();
+    });
+  }
+
   if (exportBtn) exportBtn.addEventListener('click', () => {
     try {
+      const historyList = callbacks.getHistory ? callbacks.getHistory() : (stateObj.history || []);
       const stateToExport = {
         petName: stateObj.petName, xp: stateObj.xp, level: stateObj.level, 
         enhanceStyle: stateObj.enhanceStyle, enhanceTone: stateObj.enhanceTone, 
         askPlaceholders: stateObj.askPlaceholders,
         provider: stateObj.aiSettings.provider, apiKeys: stateObj.aiSettings.apiKeys,
-        model: stateObj.aiSettings.model, history: stateObj.copyHistory,
+        model: stateObj.aiSettings.model, customModel: stateObj.aiSettings.customModel,
+        customInstructions: stateObj.aiSettings.customInstructions,
+        history: historyList,
+        customTemplates: stateObj.customTemplates || [],
         _banditBackup: true, _exportedAt: new Date().toISOString(),
       };
       const blob = new Blob([JSON.stringify(stateToExport, null, 2)], { type: 'application/json' });
@@ -182,7 +195,19 @@ export function initSettings(doc, stateObj, callbacks) {
           if (data.provider) { stateObj.aiSettings.provider = data.provider; if (settingProvider) settingProvider.value = data.provider; }
           if (data.apiKeys && typeof data.apiKeys === 'object') { stateObj.aiSettings.apiKeys = data.apiKeys; if (settingApiKey) settingApiKey.value = data.apiKeys[data.provider] || ''; }
           if (data.model) { stateObj.aiSettings.model = data.model; if (settingModel) settingModel.value = data.model; }
-          if (Array.isArray(data.history)) { stateObj.copyHistory = data.history; }
+          if (data.customModel) { stateObj.aiSettings.customModel = data.customModel; if (settingCustomModel) settingCustomModel.value = data.customModel; }
+          if (data.apiKeys && typeof data.apiKeys === 'object') { stateObj.aiSettings.apiKeys = data.apiKeys; }
+          const activeKey = (data.apiKeys && data.apiKeys[stateObj.aiSettings.provider]) || data.apiKey || '';
+          stateObj.aiSettings.apiKey = activeKey;
+          if (settingApiKey) settingApiKey.value = activeKey;
+          const restoredModel = data.model || data.customModel || '';
+          stateObj.aiSettings.model = restoredModel;
+          stateObj.aiSettings.customModel = restoredModel;
+          if (settingModel) settingModel.value = restoredModel;
+          if (settingCustomModel) settingCustomModel.value = restoredModel;
+          if (data.customInstructions) { stateObj.aiSettings.customInstructions = data.customInstructions; if (settingCustomInstructions) settingCustomInstructions.value = data.customInstructions; }
+          if (Array.isArray(data.history)) { stateObj.history = data.history; }
+          if (Array.isArray(data.customTemplates)) { stateObj.customTemplates = data.customTemplates; }
           
           callbacks.updateXPDisplay();
           callbacks.applyAccessories(stateObj.level);
@@ -190,8 +215,10 @@ export function initSettings(doc, stateObj, callbacks) {
           callbacks.persist({ 
             petName: stateObj.petName, xp: stateObj.xp, level: stateObj.level, 
             enhanceStyle: stateObj.enhanceStyle, enhanceTone: stateObj.enhanceTone, askPlaceholders: stateObj.askPlaceholders, 
-            provider: stateObj.aiSettings.provider, apiKey: stateObj.aiSettings.apiKey, model: stateObj.aiSettings.model, 
-            apiKeys: stateObj.aiSettings.apiKeys, history: stateObj.copyHistory 
+            provider: stateObj.aiSettings.provider, apiKey: stateObj.aiSettings.apiKey, model: stateObj.aiSettings.model,
+            customModel: stateObj.aiSettings.customModel, customInstructions: stateObj.aiSettings.customInstructions,
+            apiKeys: stateObj.aiSettings.apiKeys, history: stateObj.history || [],
+            customTemplates: stateObj.customTemplates || []
           }, { immediate: true });
           
           if (backupStatus) { backupStatus.textContent = 'Backup restored! 🎉'; setTimeout(() => { backupStatus.textContent = ''; }, 3000); }

@@ -112,25 +112,70 @@
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s, border-color 0.2s;
   }
   .pet-wrap.show-menu .radial-item {
-    transform: rotate(var(--a)) translateY(-95px) rotate(calc(var(--a) * -1)) scale(1);
+    transform: rotate(var(--a)) translateY(-105px) rotate(calc(var(--a) * -1)) scale(1);
   }
-  .radial-item:hover {
-    background: rgba(36, 44, 55, 0.95);
+  .pet-wrap.show-menu .radial-item:hover {
+    z-index: 1000 !important;
+    background: rgba(36, 44, 55, 0.98);
     border-color: var(--amber);
+    transform: rotate(var(--a)) translateY(-105px) rotate(calc(var(--a) * -1)) scale(1.12) !important;
+    box-shadow: 0 0 16px rgba(245, 165, 36, 0.4), 0 6px 20px rgba(0,0,0,0.6);
   }
   .radial-item .label {
     position: absolute;
-    top: -28px;
-    background: var(--panel);
+    background: #141a22;
     font-size: 11px; font-family: var(--font-mono); font-weight: bold;
-    padding: 4px 8px; border-radius: 6px;
+    padding: 5px 10px; border-radius: 6px;
     white-space: nowrap; pointer-events: none;
-    opacity: 0; transform: translateY(4px); transition: 0.2s;
+    opacity: 0; transition: opacity 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1);
     border: 1px solid var(--amber); color: var(--amber);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.85);
+    z-index: 1001;
   }
-  .radial-item:hover .label {
-    opacity: 1; transform: translateY(0);
+  /* Directional outward positioning so labels never collide with adjacent buttons */
+  .radial-item.label-left .label {
+    right: calc(100% + 10px);
+    top: 50%;
+    left: auto;
+    bottom: auto;
+    transform: translateY(-50%) translateX(4px);
+  }
+  .radial-item.label-left:hover .label {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+  .radial-item.label-right .label {
+    left: calc(100% + 10px);
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translateY(-50%) translateX(-4px);
+  }
+  .radial-item.label-right:hover .label {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+  .radial-item.label-top .label {
+    bottom: calc(100% + 10px);
+    left: 50%;
+    top: auto;
+    right: auto;
+    transform: translateX(-50%) translateY(4px);
+  }
+  .radial-item.label-top:hover .label {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .radial-item:not(.label-left):not(.label-right):not(.label-top) .label {
+    bottom: calc(100% + 10px);
+    left: 50%;
+    top: auto;
+    right: auto;
+    transform: translateX(-50%) translateY(4px);
+  }
+  .radial-item:not(.label-left):not(.label-right):not(.label-top):hover .label {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 
   /* pet stage holds BOTH sprites; only one visible at a time */
@@ -258,9 +303,56 @@
   dialog.modal {
     margin: auto;
     color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    outline: none;
+    box-sizing: border-box;
   }
   dialog.modal::backdrop {
     background: rgba(0,0,0,.6);
+  }
+
+  /* Templates Modal & Runner Styling (Firefox + Chromium compatible) */
+  .modal.templates-modal {
+    width: min(92vw, 460px);
+    max-height: 85vh;
+    padding: 20px;
+    gap: 12px;
+  }
+  .templates-grid {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(245, 165, 36, 0.3) transparent;
+  }
+  .templates-grid::-webkit-scrollbar {
+    width: 6px;
+  }
+  .templates-grid::-webkit-scrollbar-thumb {
+    background: rgba(245, 165, 36, 0.3);
+    border-radius: 4px;
+  }
+  .tab-pill:hover {
+    border-color: var(--amber) !important;
+  }
+  .template-card {
+    transition: border-color .15s ease, transform .15s ease, background .15s ease;
+  }
+  .template-card:hover {
+    border-color: var(--amber) !important;
+    background: #1c232c !important;
+  }
+  .template-card:active {
+    transform: scale(0.99) !important;
+  }
+  .template-live-preview {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(245, 165, 36, 0.3) transparent;
+  }
+  .template-live-preview::-webkit-scrollbar {
+    width: 6px;
+  }
+  .template-live-preview::-webkit-scrollbar-thumb {
+    background: rgba(245, 165, 36, 0.3);
+    border-radius: 4px;
   }
   .modal label{display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--dim)}
   .modal label .label-hint{opacity:.6;font-size:11px}

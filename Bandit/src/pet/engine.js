@@ -157,14 +157,21 @@ export function initPet(shadowRoot, initialState, callbacks) {
 
   // Face left/right based on mouse position relative to pet
   // Uses cached center to prevent layout thrashing (lag) on every mousemove
-  document.addEventListener('mousemove', (e) => {
+  function onDocMouseMove(e) {
     if (sleepMode || isDragging || !wrap) return;
     if (e.clientX < cachedPetCenterX - 20) {
       pet.classList.add('face-left');
     } else if (e.clientX > cachedPetCenterX + 20) {
       pet.classList.remove('face-left');
     }
-  }, { passive: true });
+  }
+  document.addEventListener('mousemove', onDocMouseMove, { passive: true });
+
+  function onWindowResize() {
+    clampPosition();
+    updatePosition();
+  }
+  window.addEventListener('resize', onWindowResize);
 
   function renderMessage(container, text) {
     if (!container) return;
@@ -413,7 +420,7 @@ export function initPet(shadowRoot, initialState, callbacks) {
   }
 
   // Click outside to close menu
-  document.addEventListener('pointerdown', (e) => {
+  function onDocPointerDown(e) {
     if (!wrap) return;
     if (wrap.classList.contains('show-menu')) {
       const p = e.composedPath();
@@ -421,10 +428,21 @@ export function initPet(shadowRoot, initialState, callbacks) {
         wrap.classList.remove('show-menu');
       }
     }
-  });
+  }
+  document.addEventListener('pointerdown', onDocPointerDown);
+
+  function destroy() {
+    clearTimeout(activityTimer);
+    clearTimeout(sayTimer);
+    if (holdTimer) clearTimeout(holdTimer);
+    document.removeEventListener('mousemove', onDocMouseMove);
+    document.removeEventListener('pointerdown', onDocPointerDown);
+    window.removeEventListener('resize', onWindowResize);
+  }
 
   // --- EXPORT API ---
   return {
+    destroy,
     updateState: (partial) => {
       if (partial.petName !== undefined) petName = partial.petName;
       if (partial.xp !== undefined) xp = partial.xp;

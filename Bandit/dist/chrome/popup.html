@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Bandit Settings</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #0f1318; color: #dce3ec; margin: 0; padding: 16px; width: 220px; }
+    h3 { margin: 0 0 12px 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; font-size: 13px; background: #161c24; padding: 10px; border-radius: 8px; border: 1px solid #2a3340; }
+    button { background: #f5a524; color: #000; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; width: 100%; font-weight: bold; }
+    button:hover { background: #ffbb4d; }
+    .secondary { background: #1d242e; color: #dce3ec; border: 1px solid #2a3340; font-weight: normal; }
+    .secondary:hover { background: #242c37; border-color: #f5a524; }
+    
+    /* Toggle Switch */
+    .switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #f44336; transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: #4caf50; }
+    input:checked + .slider:before { transform: translateX(14px); }
+  </style>
+</head>
+<body>
+  <h3>🦝 Bandit</h3>
+  <div class="row">
+    <span>Active on this site</span>
+    <label class="switch">
+      <input type="checkbox" id="toggleSite">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <button id="resetAll" class="secondary" style="font-size: 12px;">Reset all disabled sites</button>
+  <script src="popup.js"></script>
+</body>
+</html>

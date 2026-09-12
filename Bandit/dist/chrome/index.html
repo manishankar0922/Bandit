@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bandit — Local Testing</title>
+<style>
+  body { background: #1e1e1e; color: white; font-family: sans-serif; margin: 0; padding: 20px; }
+  .demo-page { max-width: 800px; margin: 0 auto; background: #2d2d2d; padding: 20px; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<div class="demo-page">
+  <h1>Bandit Local Demo 🐾</h1>
+  <p>This is a local testing page. The Bandit extension should automatically inject itself into this page just like it does in the wild!</p>
+  
+  <textarea id="demoInput" style="width: 100%; height: 100px; margin-top: 20px; background: #111; color: white; border: 1px solid #444; padding: 10px;" placeholder="Type a prompt here to test Bandit..."></textarea>
+</div>
+
+<div style="position:fixed;top:10px;right:10px;background:#f39c12;color:black;padding:5px 15px;border-radius:20px;font-family:monospace;font-weight:bold;z-index:9999999;box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+  ⚠️ Sandbox Mode: AI is Mocked
+</div>
+
+<!-- Mock chrome.runtime for local testing without the extension background worker -->
+<script src="demo_mock.js"></script>
+
+<!-- Load the compiled extension bundle -->
+<script src="content.bundle.js"></script>
+
+</body>
+</html>

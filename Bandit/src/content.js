@@ -7,6 +7,7 @@ import { createDialog } from './ui/modals.js';
 import { bindMenuHandlers } from './ui/menu.js';
 import { initPet } from './pet/engine.js';
 import { scrapeConversation } from './scraper.js';
+import { showTemplatesModal } from './ui/templates.js';
 
 // Injected by esbuild at compile time
 const TEMPLATE_HTML = `__TEMPLATE_HTML__`;
@@ -19,6 +20,7 @@ let shadowRoot = null;
 let container = null;
 let settingsView = null;
 let lastInputText = '';
+let openTemplatesHandler = null;
 
 async function boot() {
   if (document.getElementById('rocky-extension-host') || document.getElementById('bandit-extension-host')) return; // already injected
@@ -102,6 +104,7 @@ async function boot() {
     enhanceStyle: state.enhanceStyle,
     enhanceTone: state.enhanceTone,
     askPlaceholders: state.askPlaceholders,
+    customTemplates: state.customTemplates || [],
     aiSettings: {
       provider: state.provider,
       apiKey: state.apiKey,
@@ -113,13 +116,28 @@ async function boot() {
     settingsSize: state.settings?.size
     // History is fetched dynamically via getter now
   };
+
+  const openTemplates = () => {
+    if (petEngine) petEngine.pokeActivity();
+    showTemplatesModal({
+      openRockyModal: () => createDialog(null, shadowRoot),
+      stateObj: state,
+      persist: callbacks.persist,
+      onApply: (text, opts) => applyTemplatePrompt(text, opts),
+      copyToClipboard: (text) => navigator.clipboard.writeText(text),
+      showToast: (msg) => { if (petEngine) petEngine.showToast(msg); }
+    });
+  };
+  openTemplatesHandler = openTemplates;
   
   const settingsCb = {
     persist: callbacks.persist,
+    openTemplates,
     updateXPDisplay: () => {
-      // Sync names back
       state.petName = settingsState.petName;
-      petEngine.updateState({ petName: settingsState.petName });
+      state.xp = settingsState.xp;
+      state.level = settingsState.level;
+      petEngine.updateState({ petName: settingsState.petName, xp: settingsState.xp, level: settingsState.level });
     },
     testAIKey: async (cfg) => {
       if (!api || !api.runtime) throw new Error('No extension runtime');
@@ -140,6 +158,7 @@ async function boot() {
   // Menu callbacks
   const menuCb = {
     enhancePrompt: runEnhance,
+    openTemplates,
     undoEnhance: runUndo,
     runSummarize: runSummarize,
     pokeActivity: petEngine.pokeActivity,
@@ -149,6 +168,7 @@ async function boot() {
         disabled.push(host);
         callbacks.persist({ disabledSites: disabled }, { immediate: true });
         container.remove();
+        destroy();
       }
     },
     goHome: petEngine.goHome,
@@ -173,37 +193,98 @@ async function boot() {
   
   bindMenuHandlers(shadowRoot, wrap, settingsState, menuCb);
 
-  // Message listener (for context menu)
-  if (api && api.runtime) {
-    api.runtime.onMessage.addListener((msg) => {
-      if (msg.type === 'ROCKY_CTX_ENHANCE') runEnhance();
-      else if (msg.type === 'ROCKY_CTX_SUMMARIZE') runSummarize();
-      else if (msg.type === 'ROCKY_TOGGLE') {
-        if (msg.disabled) {
-          if (container) container.remove();
-        } else {
-          boot();
-        }
-      }
-    });
-  }
-  
-  // Watch for state changes from other tabs
-  onStateChanged((newState) => {
-    state = newState;
-    petEngine.updateState({ xp: state.xp, level: state.level });
-  });
-
   // Welcome back logic (once per day)
   const today = new Date().toISOString().split('T')[0];
   if (state.lastVisitDay !== today) {
     const newStreak = (state.streak || 0) + 1;
     callbacks.persist({ lastVisitDay: today, streak: newStreak });
     setTimeout(() => {
-      petEngine.say(`Welcome back! 🐾<br>Streak: ${newStreak} days`, 4000);
-      petEngine.playAnimation('happy', 1500);
-      petEngine.addXP(5); // Daily streak bonus
+      if (petEngine) {
+        petEngine.say(`Welcome back! 🐾<br>Streak: ${newStreak} days`, 4000);
+        petEngine.playAnimation('happy', 1500);
+        petEngine.addXP(5); // Daily streak bonus
+      }
     }, 1000);
+  }
+}
+
+function destroy() {
+  if (petEngine && petEngine.destroy) petEngine.destroy();
+  if (container) container.remove();
+  container = null;
+  petEngine = null;
+  shadowRoot = null;
+  openTemplatesHandler = null;
+}
+
+// Global message listener (for context menu and popup toggle) - registered once
+if (api && api.runtime) {
+  api.runtime.onMessage.addListener((msg) => {
+    if (msg.type === 'ROCKY_CTX_ENHANCE') runEnhance();
+    else if (msg.type === 'ROCKY_CTX_TEMPLATES') {
+      if (openTemplatesHandler) openTemplatesHandler();
+    }
+    else if (msg.type === 'ROCKY_CTX_SUMMARIZE') runSummarize();
+    else if (msg.type === 'ROCKY_TOGGLE') {
+      if (msg.disabled) {
+        destroy();
+      } else {
+        boot();
+      }
+    }
+  });
+}
+
+// Watch for state changes from other tabs - registered once
+onStateChanged((newState) => {
+  state = newState;
+  if (petEngine) {
+    petEngine.updateState({ xp: state.xp, level: state.level, petName: state.petName });
+  }
+});
+
+function hasConfiguredAI() {
+  if (state.apiKey && state.apiKey.trim()) return true;
+  if (state.apiKeys && Object.values(state.apiKeys).some(k => k && k.trim())) return true;
+  if (typeof globalThis.ai?.languageModel !== 'undefined' || typeof globalThis.LanguageModel !== 'undefined') return true;
+  return false;
+}
+
+function applyTemplatePrompt(text, { enhance = false } = {}) {
+  if (petEngine) petEngine.pokeActivity();
+  const input = getHostInput();
+  if (input) {
+    setPromptText(input, text);
+    lastInputText = text;
+    if (enhance) {
+      if (!hasConfiguredAI()) {
+        if (petEngine) {
+          petEngine.say("Template inserted! 📝✨<br><small style='opacity:0.9'>Tip: Add a free Gemini key in Settings (⚙️) to auto-enhance with AI!</small>", 4500);
+          petEngine.playAnimation('happy', 1500);
+          petEngine.addXP(3);
+        }
+      } else {
+        setTimeout(() => {
+          runEnhance();
+        }, 100);
+      }
+    } else {
+      if (petEngine) {
+        petEngine.say("Template inserted! 📝✨", 3000);
+        petEngine.playAnimation('happy', 1500);
+        petEngine.addXP(2);
+      }
+    }
+  } else {
+    navigator.clipboard.writeText(text).then(() => {
+      if (petEngine) {
+        petEngine.say("No chat box found, so I copied the prompt to your clipboard! 📋", 4000);
+        petEngine.playAnimation('happy', 1500);
+        petEngine.addXP(2);
+      }
+    }).catch(() => {
+      if (petEngine) petEngine.say("Prompt ready! 🐾", 3000);
+    });
   }
 }
 
@@ -236,11 +317,18 @@ async function runEnhance(followUpText = null) {
     const result = await aiPipeline(sys, text, { 
       actionKey: 'enhance',
       onChunk: (currentText) => {
-        setPromptText(input, currentText);
+        if (currentText) setPromptText(input, currentText);
       }
     });
     
+    if (!result || !result.trim()) {
+      if (lastInputText) setPromptText(input, lastInputText);
+      petEngine.say("Received empty response from AI 😖", 4000);
+      return;
+    }
+
     if (result.includes('ERROR_GIBBERISH')) {
+      if (lastInputText) setPromptText(input, lastInputText);
       petEngine.say("That looks like gibberish to me! Try writing a real sentence.", 4000);
     } else {
       setPromptText(input, result);
@@ -257,9 +345,15 @@ async function runEnhance(followUpText = null) {
       });
     }
   } catch (err) {
-    petEngine.say("Oops, hit a snag 😖<br>" + (err.message || String(err)), 5000);
+    if (lastInputText) setPromptText(input, lastInputText);
+    const msg = err.message || String(err);
+    if (msg.includes('Settings') || msg.includes('API key') || msg.includes('unavailable') || msg.includes('built-in only')) {
+      petEngine.say("I need an AI key to enhance! 🔑<br><small style='opacity:0.9'>Open Settings (⚙️) to add a free Gemini key.</small>", 5000);
+    } else {
+      petEngine.say("Oops, hit a snag 😖<br>" + msg, 5000);
+    }
   } finally {
-    const wrap = shadowRoot.getElementById('petWrap');
+    const wrap = shadowRoot ? shadowRoot.getElementById('petWrap') : null;
     if (wrap) wrap.classList.remove('working');
   }
 }
@@ -350,11 +444,14 @@ function saveHistory(type, text) {
   saveState({ history }, { immediate: true });
 }
 
-// Hotkey
+// Hotkeys: Ctrl+Shift+E (Enhance prompt), Alt+Shift+T (Open Templates)
 document.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'E' || e.key === 'e')) {
     e.preventDefault();
     runEnhance();
+  } else if (e.altKey && e.shiftKey && (e.key === 'T' || e.key === 't')) {
+    e.preventDefault();
+    if (openTemplatesHandler) openTemplatesHandler();
   }
 });
 

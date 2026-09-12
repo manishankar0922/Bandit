@@ -8,6 +8,14 @@ export function bindMenuHandlers(doc, wrap, stateObj, callbacks) {
     callbacks.enhancePrompt();
   });
 
+  const menuTemplates = doc.getElementById('menuTemplates');
+  if (menuTemplates) menuTemplates.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    wrap.classList.remove('show-menu');
+    callbacks.pokeActivity();
+    if (callbacks.openTemplates) callbacks.openTemplates();
+  });
+
   const menuUndo = doc.getElementById('menuUndo');
   if (menuUndo) menuUndo.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();

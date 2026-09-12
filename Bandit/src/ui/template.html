@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bandit — AI Prompt Companion</title>
-  <link rel="stylesheet" href="styles.css">
 
 </head>
 <body>
@@ -27,14 +26,15 @@
       </form>
     </div>
     <div class="radial-menu" id="petMenu">
-      <button id="menuEnhance" class="radial-item" style="--a: -120deg">✨<span class="label">Enhance</span></button>
-      <button id="menuSummarize" class="radial-item" style="--a: -80deg">📋<span class="label">Summarize</span></button>
-      <button id="menuUndo" class="radial-item" style="--a: -40deg">↩️<span class="label">Undo</span></button>
-      <button id="menuFeed" class="radial-item" style="--a: 0deg">🍪<span class="label">Feed Bandit</span></button>
-      <button id="menuHistory" class="radial-item" style="--a: 40deg">📜<span class="label">History</span></button>
-      <button id="menuSettings" class="radial-item" style="--a: 80deg">⚙️<span class="label">Settings</span></button>
-      <button id="menuHome" class="radial-item" style="--a: 120deg">🏠<span class="label">Go Home</span></button>
-      <button id="menuDisable" class="radial-item" style="--a: 160deg">🚫<span class="label">Disable</span></button>
+      <button id="menuEnhance" class="radial-item label-left" style="--a: -120deg">✨<span class="label">Enhance</span></button>
+      <button id="menuTemplates" class="radial-item label-left" style="--a: -85deg">🧩<span class="label">Templates</span></button>
+      <button id="menuSummarize" class="radial-item label-left" style="--a: -50deg">📋<span class="label">Summarize</span></button>
+      <button id="menuUndo" class="radial-item label-top" style="--a: -15deg">↩️<span class="label">Undo</span></button>
+      <button id="menuFeed" class="radial-item label-top" style="--a: 20deg">🍪<span class="label">Feed Bandit</span></button>
+      <button id="menuHistory" class="radial-item label-right" style="--a: 55deg">📜<span class="label">History</span></button>
+      <button id="menuSettings" class="radial-item label-right" style="--a: 90deg">⚙️<span class="label">Settings</span></button>
+      <button id="menuHome" class="radial-item label-right" style="--a: 125deg">🏠<span class="label">Go Home</span></button>
+      <button id="menuDisable" class="radial-item label-right" style="--a: 160deg">🚫<span class="label">Disable</span></button>
     </div>
     <div class="emote" id="startleEmote" style="display:none;position:absolute;top:-10px;font-size:28px;z-index:10;animation:pop .3s cubic-bezier(.3,1.4,.5,1)">❗️</div>
     <div class="pet" id="pet">
@@ -68,11 +68,6 @@
     </label>
 
       <div class="field-group">
-        <h4>Custom AI Model</h4>
-        <input type="text" id="settingCustomModel" placeholder="e.g. gpt-4o, claude-3-opus-20240229 (optional)" style="width:100%; border:1px solid var(--line); border-radius:4px; padding:4px; font-family:var(--font-sans); font-size:12px; background:transparent; color:white;">
-      </div>
-      
-      <div class="field-group">
         <h4>Custom Prompt Rules</h4>
         <textarea id="settingCustomInstructions" placeholder="e.g. 'Always output as a React component' or 'Format it for Midjourney'" style="width:100%; min-height:60px; border:1px solid var(--line); border-radius:4px; padding:4px; font-family:var(--font-sans); font-size:12px; background:transparent; color:white; resize:vertical;"></textarea>
       </div>
@@ -82,6 +77,12 @@
           <input type="checkbox" id="settingAskPlaceholders">
           <span>Ask me to fill in [placeholders] after Enhance</span>
         </label>
+      </div>
+
+      <div class="field-group" style="margin-top: 4px;">
+        <button id="openTemplatesFromSettings" type="button" class="secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: bold; border-color: var(--amber); color: var(--amber); background: rgba(245,165,36,0.08); padding: 9px 12px; margin: 0;">
+          🧩 Browse Prompt Templates
+        </button>
       </div>
 
     <hr class="modal-divider">
@@ -113,7 +114,7 @@
         <option value="gemini">Google Gemini</option>
         <option value="groq">Groq (free tier, fast)</option>
         <option value="nvidia">NVIDIA NIM (free tier)</option>
-        <option value="builtin">Use built-in Chrome AI only (no key)</option>
+        <option value="builtin">Use built-in Browser AI only (no key)</option>
       </select>
     </label>
     <label>
@@ -137,8 +138,10 @@
       <span id="resetDisabledStatus" style="font-size: 11px; color: var(--green);"></span>
     </div>
 
-    <div style="text-align: center; margin-top: 4px;">
-      <a href="https://github.com/manishankar0922/Bandit/blob/main/PRIVACY.md" target="_blank" style="font-size: 11px; color: var(--dim); text-decoration: underline;">Privacy Policy</a>
+    <div style="text-align: center; margin-top: 4px; display: flex; justify-content: center; gap: 8px; font-size: 11px;">
+      <a href="https://github.com/manishankar0922/Bandit/blob/main/PRIVACY.md" target="_blank" style="color: var(--dim); text-decoration: underline;">Privacy Policy</a>
+      <span style="color: var(--dim);">·</span>
+      <a href="https://github.com/manishankar0922/Bandit/blob/main/TERMS.md" target="_blank" style="color: var(--dim); text-decoration: underline;">Terms & Conditions</a>
     </div>
 
     <hr class="modal-divider">
@@ -153,16 +156,6 @@
   </div>
 </div>
 
-<script src="storage.js"></script>
-<script src="ai/prompts.js"></script>
-<script src="ai/pipeline.js"></script>
-
-
-<script src="ui/injector.js"></script>
-<script src="ui/modals.js"></script>
-<script src="ui/popup.js"></script>
-<script src="pet/core.js"></script>
-<script src="demo.js"></script>
 
 </body>
 </html>

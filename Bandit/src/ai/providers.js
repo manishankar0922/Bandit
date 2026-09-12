@@ -10,7 +10,7 @@ export const PROVIDERS = {
   nvidia:    { endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions', auth: 'bearer', model: 'meta/llama3-70b-instruct', format: 'openai' },
 };
 
-export function buildRequest(providerId, { apiKey, model, systemPrompt, userText, maxTokens }) {
+export function buildRequest(providerId, { apiKey, model, systemPrompt, userText, maxTokens, stream = true }) {
   const cfg = PROVIDERS[providerId];
   if (!cfg) throw new Error('Unknown AI provider: ' + providerId);
 
@@ -20,6 +20,9 @@ export function buildRequest(providerId, { apiKey, model, systemPrompt, userText
   let url = cfg.endpoint;
   if (cfg.format === 'gemini') {
     url = url.replace('{MODEL}', encodeURIComponent(useModel));
+    if (stream) {
+      url = url.replace(':generateContent', ':streamGenerateContent?alt=sse');
+    }
   }
 
   const headers = { 'content-type': 'application/json' };
@@ -40,29 +43,24 @@ export function buildRequest(providerId, { apiKey, model, systemPrompt, userText
       max_tokens: tokens,
       system: systemPrompt,
       messages: [{ role: 'user', content: userText }],
-      stream: true,
     };
+    if (stream) body.stream = true;
   } else if (cfg.format === 'openai') {
     body = {
       model: useModel,
       max_tokens: tokens,
-      max_completion_tokens: tokens,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userText },
       ],
-      stream: true,
     };
+    if (stream) body.stream = true;
   } else if (cfg.format === 'gemini') {
     body = {
       systemInstruction: { parts: [{ text: systemPrompt }] },
       contents: [{ role: 'user', parts: [{ text: userText }] }],
       generationConfig: { maxOutputTokens: tokens },
     };
-    // Gemini handles streaming via a different endpoint usually (streamGenerateContent)
-    if (!url.includes('streamGenerateContent')) {
-      url = url.replace('generateContent', 'streamGenerateContent?alt=sse');
-    }
   } else {
     throw new Error('Unknown provider format: ' + cfg.format);
   }

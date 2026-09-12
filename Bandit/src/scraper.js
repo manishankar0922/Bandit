@@ -20,6 +20,18 @@ export function scrapeConversation() {
   return text || scrapeGeneric();
 }
 
+function cleanMessageText(text) {
+  if (!text) return '';
+  return text
+    .split('\n')
+    .filter(line => {
+      const trimmed = line.trim();
+      return trimmed !== 'Copy code' && trimmed !== 'Copy' && trimmed !== 'Copied!';
+    })
+    .join('\n')
+    .trim();
+}
+
 function scrapeChatGPT() {
   const parts = [];
 
@@ -30,7 +42,8 @@ function scrapeChatGPT() {
       const role = msg.getAttribute('data-message-author-role');
       const content = msg.querySelector('.markdown, .whitespace-pre-wrap, .text-message');
       if (role && content) {
-        parts.push(`[${role.toUpperCase()}]\n${content.innerText}`);
+        const cleaned = cleanMessageText(content.innerText);
+        if (cleaned) parts.push(`[${role.toUpperCase()}]\n${cleaned}`);
       }
     }
     return parts.join('\n\n');
@@ -41,7 +54,8 @@ function scrapeChatGPT() {
   if (divMsgs.length) {
     for (const msg of divMsgs) {
       const role = msg.getAttribute('data-message-author-role');
-      parts.push(`[${role.toUpperCase()}]\n${msg.innerText}`);
+      const cleaned = cleanMessageText(msg.innerText);
+      if (cleaned) parts.push(`[${role.toUpperCase()}]\n${cleaned}`);
     }
     return parts.join('\n\n');
   }

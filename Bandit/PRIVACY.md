@@ -1,8 +1,10 @@
 # Privacy Policy — Bandit (Browser Extension)
 
-**Last updated:** July 20, 2026
+**Last updated:** September 12, 2026
 
-Bandit is a browser extension that enhances your AI prompts and summarizes conversations. This policy explains what data Bandit accesses, how it's handled, and what gets sent where — in plain language.
+Bandit is an open-source browser extension that enhances your AI prompts, offers ready-to-use prompt templates, and summarizes conversations. This policy explains what data Bandit accesses, how it's handled, and what gets sent where — in plain language.
+
+For terms of service, see our [Terms and Conditions](TERMS.md).
 
 ---
 
@@ -33,12 +35,15 @@ Bandit stores the following **only on your device** using `browser.storage.local
 |------|---------|
 | Pet name, XP, level | Game state for the desktop pet |
 | Position on screen | Remembers where you dragged Bandit |
-| AI provider selection | Which AI service you chose (e.g., "anthropic", "gemini") |
+| AI provider selection | Which AI service you chose (e.g., "anthropic", "gemini", "groq", "nvidia") |
 | API key(s) | Your own API keys, saved per-provider for automatic failover |
 | Model override | Optional model name if you set one |
+| Custom instructions | Persistent prompt engineering instructions |
+| Custom templates | User-created prompt templates and variables |
 | Enhance style preference | Your chosen style (Structured / Concise / Detailed) |
+| Prompt tone preference | Your chosen tone (Professional / Casual / Academic / Creative) |
 | Placeholder preference | Whether to ask follow-up questions after enhancement (off by default) |
-| Last 10 results | History of your enhanced prompts and summaries |
+| Last 20 results | History of your enhanced prompts and summaries |
 | Daily streak counter | Tracks consecutive visit days for XP bonus |
 | Disabled sites list | Hostnames where you chose to hide Bandit |
 | Version tracking | Detects extension updates for new-feature notifications |
@@ -62,7 +67,7 @@ When you trigger **Enhance** or **Summarize**, Bandit sends data to the AI provi
 
 ### Important notes about AI provider requests:
 
-1. **You control which provider receives your data.** Bandit supports Anthropic (Claude), OpenAI, Google Gemini, and Groq. You choose which one(s) to use by providing your own API key.
+1. **You control which provider receives your data.** Bandit supports Anthropic (Claude), OpenAI, Google Gemini, Groq, and NVIDIA NIM. You choose which one(s) to use by providing your own API key.
 2. **Requests go directly to the provider's official API endpoint** — never through any intermediary server.
 3. **API calls happen only from the extension's background service worker** — never from the host page's JavaScript context. This means the host website cannot intercept or observe the request.
 4. **No data is cached or logged.** The AI response is displayed/inserted and that's it. Debug mode (opt-in, per-site) logs only the provider name and response time — never prompt text or API keys.
@@ -104,6 +109,7 @@ Bandit's entire UI lives inside a **closed shadow DOM**. This means:
 | `host_permissions: https://api.openai.com/*` | Send AI requests to OpenAI |
 | `host_permissions: https://generativelanguage.googleapis.com/*` | Send AI requests to Google Gemini |
 | `host_permissions: https://api.groq.com/*` | Send AI requests to Groq |
+| `host_permissions: https://integrate.api.nvidia.com/*` | Send AI requests to NVIDIA NIM |
 | `content_scripts: <all_urls>` | Inject the pet onto every page |
 
 ## Children's Privacy

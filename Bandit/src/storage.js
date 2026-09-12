@@ -1,7 +1,8 @@
 // State persistence layer.
 // Works in both extension (chrome.storage.local) and demo page (in-memory).
 
-const STORAGE_KEY = 'rockyState';
+const PRIMARY_STORAGE_KEY = 'banditState';
+const LEGACY_STORAGE_KEY = 'rockyState';
 const DEBOUNCE_MS = 300;
 
 export const DEFAULTS = {
@@ -27,6 +28,7 @@ export const DEFAULTS = {
   disabledSites: [],
   lastSeenVersion: '',
   updateMessageCount: 0,
+  customTemplates: [],
 };
 
 const KNOWN_PROVIDERS = ['builtin', 'anthropic', 'openai', 'gemini', 'groq', 'nvidia'];
@@ -36,7 +38,7 @@ const KNOWN_TONES = ['professional', 'casual', 'academic', 'creative'];
 const api = globalThis.browser ?? globalThis.chrome;
 const storageApiPresent = !!(api && api.storage && api.storage.local);
 
-function mergeDefaults(stored) {
+export function mergeDefaults(stored) {
   const s = stored || {};
   const legacyAI = s.ai && typeof s.ai === 'object' ? s.ai : null;
   const merged = {
@@ -59,6 +61,7 @@ function mergeDefaults(stored) {
   if (!KNOWN_TONES.includes(merged.enhanceTone)) merged.enhanceTone = DEFAULTS.enhanceTone;
   if (!Array.isArray(merged.history)) merged.history = DEFAULTS.history;
   if (!Array.isArray(merged.disabledSites)) merged.disabledSites = DEFAULTS.disabledSites;
+  if (!Array.isArray(merged.customTemplates)) merged.customTemplates = DEFAULTS.customTemplates;
 
   return merged;
 }
@@ -71,8 +74,9 @@ let pending = null;
 export async function loadState() {
   if (!storageAvailable) return structuredClone(memoryState);
   try {
-    const result = await api.storage.local.get(STORAGE_KEY);
-    memoryState = mergeDefaults(result ? result[STORAGE_KEY] : null);
+    const result = await api.storage.local.get([PRIMARY_STORAGE_KEY, LEGACY_STORAGE_KEY]);
+    const stored = result ? (result[PRIMARY_STORAGE_KEY] || result[LEGACY_STORAGE_KEY]) : null;
+    memoryState = mergeDefaults(stored);
     return structuredClone(memoryState);
   } catch (err) {
     console.warn('Bandit: storage.local.get failed, falling back to in-memory state', err);
@@ -88,7 +92,7 @@ export function flush() {
   pending = null;
   if (!toWrite || !storageAvailable) return;
   try {
-    api.storage.local.set({ [STORAGE_KEY]: toWrite });
+    api.storage.local.set({ [PRIMARY_STORAGE_KEY]: toWrite, [LEGACY_STORAGE_KEY]: toWrite });
   } catch (err) {
     console.warn('Bandit: storage.local.set failed, falling back to in-memory state', err);
     storageAvailable = false;
@@ -121,8 +125,10 @@ export function onStateChanged(callback) {
   if (!storageAvailable || !api.storage.onChanged) return () => {};
   try {
     const listener = (changes, areaName) => {
-      if (areaName !== 'local' || !changes[STORAGE_KEY]) return;
-      memoryState = mergeDefaults(changes[STORAGE_KEY].newValue);
+      if (areaName !== 'local') return;
+      const change = changes[PRIMARY_STORAGE_KEY] || changes[LEGACY_STORAGE_KEY];
+      if (!change) return;
+      memoryState = mergeDefaults(change.newValue);
       callback(structuredClone(memoryState));
     };
     api.storage.onChanged.addListener(listener);

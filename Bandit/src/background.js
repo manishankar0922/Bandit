@@ -7,22 +7,21 @@ const api = globalThis.browser ?? globalThis.chrome;
 let lastSeenProvider = 'builtin';
 let isEnabled = true;
 
-// Initialize worker state
-async function initWorker() {
-  if (!api || !api.storage) return; // not running in extension context
-  
-  const state = await loadState();
-  lastSeenProvider = state.provider || 'builtin';
-  const disabled = state.disabledSites || [];
-  isEnabled = true; // Background doesn't easily know active tab URL at init
-
-  // Context menus
-  if (api.contextMenus) {
+// Context menus creation
+function setupContextMenus() {
+  if (!api || !api.contextMenus) return;
+  try {
     api.contextMenus.removeAll(() => {
+      if (api.runtime.lastError) { /* ignore */ }
       api.contextMenus.create({
         id: 'rocky-enhance',
         title: '✨ Enhance Prompt with Bandit',
         contexts: ['editable', 'selection']
+      });
+      api.contextMenus.create({
+        id: 'rocky-templates',
+        title: '🧩 Prompt Templates Library',
+        contexts: ['editable', 'page']
       });
       api.contextMenus.create({
         id: 'rocky-summarize',
@@ -30,21 +29,34 @@ async function initWorker() {
         contexts: ['page', 'selection']
       });
     });
-    
-    api.contextMenus.onClicked.addListener((info, tab) => {
-      if (!tab || !tab.id) return;
-      if (info.menuItemId === 'rocky-enhance') {
-        api.tabs.sendMessage(tab.id, { type: 'ROCKY_CTX_ENHANCE' }).catch(() => {});
-      } else if (info.menuItemId === 'rocky-summarize') {
-        api.tabs.sendMessage(tab.id, { type: 'ROCKY_CTX_SUMMARIZE' }).catch(() => {});
-      }
-    });
-  }
-  
-  // Extension icon uses default_popup in manifest, so we no longer need the action click listener here.
+  } catch (_) {}
 }
 
-initWorker();
+// In MV3, listeners must be registered synchronously on top level
+if (api && api.contextMenus && api.contextMenus.onClicked) {
+  api.contextMenus.onClicked.addListener((info, tab) => {
+    if (!tab || !tab.id) return;
+    if (info.menuItemId === 'rocky-enhance') {
+      api.tabs.sendMessage(tab.id, { type: 'ROCKY_CTX_ENHANCE' }).catch(() => {});
+    } else if (info.menuItemId === 'rocky-templates') {
+      api.tabs.sendMessage(tab.id, { type: 'ROCKY_CTX_TEMPLATES' }).catch(() => {});
+    } else if (info.menuItemId === 'rocky-summarize') {
+      api.tabs.sendMessage(tab.id, { type: 'ROCKY_CTX_SUMMARIZE' }).catch(() => {});
+    }
+  });
+}
+
+if (api && api.runtime && api.runtime.onInstalled) {
+  api.runtime.onInstalled.addListener(() => {
+    setupContextMenus();
+  });
+}
+if (api && api.runtime && api.runtime.onStartup) {
+  api.runtime.onStartup.addListener(() => {
+    setupContextMenus();
+  });
+}
+setupContextMenus();
 
 // Message routing
 if (api && api.runtime) {
@@ -123,13 +135,15 @@ async function handleAICall(msg, sender) {
         if (text) chunkText += text;
       }
       
-      if (chunkText && msg.requestId && sender && sender.tab && sender.tab.id) {
+      if (chunkText) {
         fullText += chunkText;
-        api.tabs.sendMessage(sender.tab.id, {
-          type: 'ROCKY_STREAM_CHUNK',
-          requestId: msg.requestId,
-          text: fullText
-        }).catch(() => {});
+        if (msg.requestId && sender && sender.tab && sender.tab.id) {
+          api.tabs.sendMessage(sender.tab.id, {
+            type: 'ROCKY_STREAM_CHUNK',
+            requestId: msg.requestId,
+            text: fullText
+          }).catch(() => {});
+        }
       }
     }
     
@@ -139,6 +153,12 @@ async function handleAICall(msg, sender) {
     }
 
     return { ok: true, text: fullText.trim(), provider };
+    const trimmed = fullText.trim();
+    if (!trimmed) {
+      throw new Error(`The model returned an empty response. Please check your prompt or API key.`);
+    }
+
+    return { ok: true, text: trimmed, provider };
     
   } catch (err) {
     return { ok: false, error: err.message || String(err) };
@@ -155,7 +175,8 @@ async function handleTestKey(msg) {
       model: msg.model,
       systemPrompt: 'You are a test script. Reply with "OK".',
       userText: 'Hello.',
-      maxTokens: 10
+      maxTokens: 10,
+      stream: false
     });
 
     const res = await fetch(req.url, {
@@ -164,11 +185,24 @@ async function handleTestKey(msg) {
       body: JSON.stringify(req.body)
     });
     
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: Failed to reach API`);
+      }
+      throw new Error('API returned unparseable response');
+    }
+
     if (!res.ok) {
       throw new Error((data.error && data.error.message) || `HTTP ${res.status}`);
+      const errDetail = (data && data.error && (data.error.message || data.error)) || `HTTP ${res.status}`;
+      throw new Error(errDetail);
     }
     
+    // Validate response structure
+    parseResponse(provider, data);
     return { ok: true, provider };
   } catch (err) {
     return { ok: false, error: err.message || String(err) };

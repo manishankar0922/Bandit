@@ -143,7 +143,7 @@ export async function aiPipeline(systemPrompt, userText, opts = {}) {
     }
 
     if (config.provider === 'builtin') {
-      throw new Error('on-device AI is unavailable right now, and "built-in only" is selected');
+      throw new Error('Built-in AI is not available in this browser. Please add a free API key in Settings (⚙️) to use AI enhancement.');
     }
   }
 

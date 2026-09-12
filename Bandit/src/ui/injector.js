@@ -40,12 +40,28 @@ function getGeminiInput() {
   return null;
 }
 
+/**
+ * Detect Claude's input element.
+ * Claude uses a ProseMirror contenteditable div.
+ */
+function getClaudeInput() {
+  const pm = document.querySelector('div.ProseMirror[contenteditable="true"]');
+  if (pm && pm.offsetParent !== null) return pm;
+  const anyCe = document.querySelector('fieldset [contenteditable="true"], main [contenteditable="true"]');
+  if (anyCe && anyCe.offsetParent !== null) return anyCe;
+  return null;
+}
+
 export function getHostInput() {
   const host = window.location.hostname;
 
   // Site-specific detection first — these override the generic logic
   if (host.includes('chatgpt.com') || host.includes('chat.openai.com')) {
     const el = getChatGPTInput();
+    if (el) return el;
+  }
+  if (host.includes('claude.ai')) {
+    const el = getClaudeInput();
     if (el) return el;
   }
   if (host.includes('gemini.google.com')) {
@@ -101,8 +117,12 @@ export function simulatePaste(el, text) {
     sel.removeAllRanges();
     sel.addRange(range);
 
-    // Use insertText for undo support, fall back to innerHTML
-    const success = document.execCommand('insertText', false, text);
+    // Use insertText for undo support, fall back to textContent
+    let success = false;
+    try {
+      success = document.execCommand('insertText', false, text);
+    } catch (_) {}
+
     if (!success) {
       // ProseMirror / Quill fallback: set innerHTML + dispatch input
       el.textContent = text;
@@ -110,7 +130,10 @@ export function simulatePaste(el, text) {
     dispatchReactInput(el);
   } else {
     el.select();
-    const success = document.execCommand('insertText', false, text);
+    let success = false;
+    try {
+      success = document.execCommand('insertText', false, text);
+    } catch (_) {}
 
     if (!success) {
       const nativeInputSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;

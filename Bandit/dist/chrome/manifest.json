@@ -22,23 +22,7 @@
     "https://integrate.api.nvidia.com/*"
   ],
   "background": {
-    "scripts": [
-      "background.bundle.js"
-    ]
-  },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "bandit@vibecoding.pet",
-      "strict_min_version": "109.0",
-      "data_collection_permissions": {
-        "required": [
-          "none"
-        ]
-      }
-    },
-    "gecko_android": {
-      "strict_min_version": "120.0"
-    }
+    "service_worker": "background.bundle.js"
   },
   "content_scripts": [
     {

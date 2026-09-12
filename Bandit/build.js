@@ -103,14 +103,29 @@ async function buildPlatform(platform) {
 
 async function build() {
   try {
-    // Clean dist before building
+    const target = process.argv[2] || 'all';
     const distDir = path.join(__dirname, 'dist');
-    if (fs.existsSync(distDir)) {
-      fs.rmSync(distDir, { recursive: true, force: true });
+
+    if (target === 'all') {
+      if (fs.existsSync(distDir)) {
+        fs.rmSync(distDir, { recursive: true, force: true });
+      }
+      await buildPlatform('firefox');
+      await buildPlatform('chrome');
+      console.log('Build complete! Generated dist/firefox and dist/chrome');
+    } else if (target === 'chrome') {
+      const chromeDir = path.join(distDir, 'chrome');
+      if (fs.existsSync(chromeDir)) fs.rmSync(chromeDir, { recursive: true, force: true });
+      await buildPlatform('chrome');
+      console.log('Build complete! Generated dist/chrome');
+    } else if (target === 'firefox') {
+      const firefoxDir = path.join(distDir, 'firefox');
+      if (fs.existsSync(firefoxDir)) fs.rmSync(firefoxDir, { recursive: true, force: true });
+      await buildPlatform('firefox');
+      console.log('Build complete! Generated dist/firefox');
+    } else {
+      throw new Error(`Unknown build target: ${target}. Expected "chrome", "firefox", or "all".`);
     }
-    
-    await buildPlatform('firefox');
-    console.log('Build complete! Generated dist/firefox');
   } catch (err) {
     console.error('Build failed:', err);
     process.exit(1);

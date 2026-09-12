@@ -4,16 +4,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   const toggleSite = document.getElementById('toggleSite');
   const resetAll = document.getElementById('resetAll');
   
-  const [tab] = await api.tabs.query({ active: true, currentWindow: true });
-  const host = (tab && tab.url) ? new URL(tab.url).hostname : null;
+  let host = null;
+  let tab = null;
+  try {
+    const tabs = await api.tabs.query({ active: true, currentWindow: true });
+    tab = tabs && tabs[0];
+    if (tab && tab.url) {
+      const u = new URL(tab.url);
+      if (u.protocol.startsWith('http')) {
+        host = u.hostname;
+      }
+    }
+  } catch (_) {}
   
   if (!host) {
     toggleSite.disabled = true;
     toggleSite.parentElement.style.opacity = '0.5';
   }
 
-  api.storage.local.get(['rockyState'], (res) => {
-    let state = res.rockyState || {};
+  api.storage.local.get(['banditState', 'rockyState'], (res) => {
+    let state = (res && (res.banditState || res.rockyState)) || {};
     let disabled = state.disabledSites || [];
     toggleSite.checked = host ? !disabled.includes(host) : false;
     
@@ -26,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!disabled.includes(host)) disabled.push(host);
       }
       state.disabledSites = disabled;
-      api.storage.local.set({ rockyState: state });
+      api.storage.local.set({ banditState: state, rockyState: state });
       
       // Tell content script to toggle
       if (tab && tab.id) {
@@ -43,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     resetAll.addEventListener('click', () => {
       state.disabledSites = [];
-      api.storage.local.set({ rockyState: state });
+      api.storage.local.set({ banditState: state, rockyState: state });
       resetAll.textContent = "Cleared!";
       setTimeout(() => { resetAll.textContent = "Reset all disabled sites"; }, 2000);
       if (host) toggleSite.checked = true;
