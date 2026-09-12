@@ -2656,16 +2656,23 @@ ${turn.innerText}`);
     function renderHeader() {
       const head = document.createElement("div");
       head.className = "templates-header";
-      head.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <h3 style="margin:0;font-size:16px;display:flex;align-items:center;gap:8px;">\u{1F9E9} Prompt Templates</h3>
-        <button class="templates-close-btn" style="background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer;padding:4px 8px;">\u2715</button>
-      </div>
-      <p style="margin:0 0 12px 0;font-size:12px;color:var(--dim);line-height:1.4;">
-        Pick a starting prompt, fill in the blanks, and let Bandit enhance it into a masterpiece!
-      </p>
-    `;
-      head.querySelector(".templates-close-btn").addEventListener("click", close);
+      const topRow = document.createElement("div");
+      topRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;";
+      const title = document.createElement("h3");
+      title.style.cssText = "margin:0;font-size:16px;display:flex;align-items:center;gap:8px;";
+      title.textContent = "\u{1F9E9} Prompt Templates";
+      const closeBtn = document.createElement("button");
+      closeBtn.className = "templates-close-btn";
+      closeBtn.style.cssText = "background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer;padding:4px 8px;";
+      closeBtn.textContent = "\u2715";
+      closeBtn.addEventListener("click", close);
+      topRow.appendChild(title);
+      topRow.appendChild(closeBtn);
+      const desc = document.createElement("p");
+      desc.style.cssText = "margin:0 0 12px 0;font-size:12px;color:var(--dim);line-height:1.4;";
+      desc.textContent = "Pick a starting prompt, fill in the blanks, and let Bandit enhance it into a masterpiece!";
+      head.appendChild(topRow);
+      head.appendChild(desc);
       return head;
     }
     function renderView() {
@@ -2745,7 +2752,17 @@ ${turn.innerText}`);
       if (filtered.length === 0) {
         const empty = document.createElement("div");
         empty.style.cssText = "text-align:center;padding:32px 16px;color:var(--dim);font-size:12px;line-height:1.6;";
-        empty.innerHTML = `No templates found matching "<b>${searchQuery}</b>".<br>Try searching something else or create a custom one!`;
+        const line1 = document.createElement("div");
+        line1.appendChild(document.createTextNode('No templates found matching "'));
+        const boldQuery = document.createElement("b");
+        boldQuery.textContent = searchQuery;
+        line1.appendChild(boldQuery);
+        line1.appendChild(document.createTextNode('".'));
+        const line2 = document.createElement("div");
+        line2.style.cssText = "color:var(--dim);font-size:11px;margin-top:4px;";
+        line2.textContent = "Try searching something else or create a custom one!";
+        empty.appendChild(line1);
+        empty.appendChild(line2);
         grid.appendChild(empty);
         return;
       }
@@ -2857,10 +2874,14 @@ ${turn.innerText}`);
       runner.appendChild(navBar);
       const info = document.createElement("div");
       info.style.cssText = "background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:left;";
-      info.innerHTML = `
-      <div style="font-size:13px;font-weight:bold;color:var(--text);margin-bottom:2px;">${t.name}</div>
-      <div style="font-size:11px;color:var(--dim);">${t.description}</div>
-    `;
+      const infoTitle = document.createElement("div");
+      infoTitle.style.cssText = "font-size:13px;font-weight:bold;color:var(--text);margin-bottom:2px;";
+      infoTitle.textContent = t.name;
+      const infoDesc = document.createElement("div");
+      infoDesc.style.cssText = "font-size:11px;color:var(--dim);";
+      infoDesc.textContent = t.description;
+      info.appendChild(infoTitle);
+      info.appendChild(infoDesc);
       runner.appendChild(info);
       const vars = t.variables || [];
       const values = {};
@@ -2917,7 +2938,13 @@ ${turn.innerText}`);
           group.style.cssText = "display:flex;flex-direction:column;gap:4px;text-align:left;";
           const label = document.createElement("label");
           label.style.cssText = "font-size:11px;font-weight:bold;color:var(--text);display:flex;justify-content:space-between;";
-          label.innerHTML = `<span>${v.label || v.key}</span><span style="font-size:10px;color:var(--dim);font-weight:normal;">${v.placeholder ? v.placeholder.slice(0, 30) + "\u2026" : ""}</span>`;
+          const labelTitle = document.createElement("span");
+          labelTitle.textContent = v.label || v.key;
+          const labelHint = document.createElement("span");
+          labelHint.style.cssText = "font-size:10px;color:var(--dim);font-weight:normal;";
+          labelHint.textContent = v.placeholder ? v.placeholder.length > 30 ? v.placeholder.slice(0, 30) + "\u2026" : v.placeholder : "";
+          label.appendChild(labelTitle);
+          label.appendChild(labelHint);
           const input = document.createElement("input");
           input.type = "text";
           input.placeholder = v.placeholder || `Enter ${v.key}...`;
@@ -2941,7 +2968,13 @@ ${turn.innerText}`);
       previewWrap.style.cssText = "text-align:left;";
       const previewLabel = document.createElement("div");
       previewLabel.style.cssText = "font-size:10px;text-transform:uppercase;color:var(--dim);letter-spacing:0.5px;margin-bottom:4px;display:flex;justify-content:space-between;";
-      previewLabel.innerHTML = '<span>Live Prompt Preview</span><span style="color:var(--amber);">ready to insert</span>';
+      const previewTitle = document.createElement("span");
+      previewTitle.textContent = "Live Prompt Preview";
+      const previewBadge = document.createElement("span");
+      previewBadge.style.color = "var(--amber)";
+      previewBadge.textContent = "ready to insert";
+      previewLabel.appendChild(previewTitle);
+      previewLabel.appendChild(previewBadge);
       const previewBox = document.createElement("div");
       previewBox.id = "templateLivePreview";
       previewBox.style.cssText = "background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:11.5px;font-family:var(--font-mono);line-height:1.5;color:var(--text);max-height:16vh;overflow-y:auto;white-space:pre-wrap;";
@@ -2962,7 +2995,7 @@ ${turn.innerText}`);
       const primaryBtn = document.createElement("button");
       primaryBtn.type = "button";
       primaryBtn.style.cssText = "background:var(--amber);color:#000;border:none;border-radius:8px;padding:10px;font-weight:bold;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;";
-      primaryBtn.innerHTML = "\u{1F680} Insert into Chat";
+      primaryBtn.textContent = "\u{1F680} Insert into Chat";
       primaryBtn.addEventListener("click", () => {
         const prompt = getFinalText();
         close();
@@ -2974,7 +3007,7 @@ ${turn.innerText}`);
       enhanceBtn.type = "button";
       enhanceBtn.className = "secondary";
       enhanceBtn.style.cssText = "flex:1;font-size:11px;padding:8px;font-weight:bold;color:var(--amber);border:1px solid var(--amber);cursor:pointer;background:rgba(245,165,36,0.08);";
-      enhanceBtn.innerHTML = "\u2728 Insert & Enhance";
+      enhanceBtn.textContent = "\u2728 Insert & Enhance";
       enhanceBtn.title = "Insert into chat and immediately run AI prompt enhancement";
       enhanceBtn.addEventListener("click", () => {
         const prompt = getFinalText();
@@ -3019,7 +3052,22 @@ ${turn.innerText}`);
       descInput.style.cssText = "background:var(--bg);border:1px solid var(--line);color:var(--text);padding:8px 12px;border-radius:6px;font-size:12px;font-family:var(--font-mono);";
       const tip = document.createElement("div");
       tip.style.cssText = "font-size:11px;color:var(--amber);line-height:1.4;";
-      tip.innerHTML = "\u{1F4A1} <b>Pro Tip:</b> Add <code>{{variableName}}</code> anywhere to create fill-in blanks (e.g. <code>{{topic}}</code>, <code>{{goal}}</code>)!";
+      const tipBold = document.createElement("b");
+      tipBold.textContent = "\u{1F4A1} Pro Tip:";
+      const code1 = document.createElement("code");
+      code1.textContent = "{{variableName}}";
+      const code2 = document.createElement("code");
+      code2.textContent = "{{topic}}";
+      const code3 = document.createElement("code");
+      code3.textContent = "{{goal}}";
+      tip.appendChild(tipBold);
+      tip.appendChild(document.createTextNode(" Add "));
+      tip.appendChild(code1);
+      tip.appendChild(document.createTextNode(" anywhere to create fill-in blanks (e.g. "));
+      tip.appendChild(code2);
+      tip.appendChild(document.createTextNode(", "));
+      tip.appendChild(code3);
+      tip.appendChild(document.createTextNode(")!"));
       const promptText = document.createElement("textarea");
       promptText.placeholder = "Write your template prompt here with {{variables}}...";
       promptText.style.cssText = "background:var(--bg);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:8px;font-size:12px;font-family:var(--font-mono);min-height:100px;resize:vertical;";
